@@ -132,3 +132,9 @@ dmypy.json
 models/*
 data/*
 runs/*
+
+# Results
+train_result/
+vis_result/
+.dist_test/
+box.pkl
