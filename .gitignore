@@ -132,9 +132,11 @@ dmypy.json
 models/*
 data/*
 runs/*
+pretrained/
 
 # Results
 train_result/
 vis_result/
 .dist_test/
 box.pkl
+nohup.out
