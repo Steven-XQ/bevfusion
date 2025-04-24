@@ -265,7 +265,7 @@ test_pipeline:
 
 data:
   samples_per_gpu: 1 #4
-  workers_per_gpu: 0 #4
+  workers_per_gpu: 4 #4
   train:
     type: CBGSDataset
     dataset:

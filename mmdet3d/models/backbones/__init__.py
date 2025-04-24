@@ -6,4 +6,5 @@ from .sparse_encoder import *
 from .pillar_encoder import *
 from .vovnet import *
 from .dla import *
+from .camera_moe_feature import *
 # from .radar_encoder import *
