@@ -53,9 +53,9 @@ class MoE(BaseModule):
         self.conv_pvt_3 = nn.Conv2d(512, 768, kernel_size=1, stride=1, padding=0) 
 
     def forward(self, x):
-        final_output_1 = torch.zeros()
-        final_output_2 = torch.zeros()
-        final_output_3 = torch.zeros()
+        final_output_1 = torch.zeros((6, 192, 32, 88), device=x.device)
+        final_output_2 = torch.zeros((6, 384, 16, 44), device=x.device)
+        final_output_3 = torch.zeros((6, 768, 8, 22), device=x.device)
 
         # 获取专家权重
         routing_probs = self.router(x)  # Shape: [batch_size, num_experts]
@@ -86,9 +86,9 @@ class MoE(BaseModule):
                 expert_output_3 = self.conv_pvt_3(expert_output[2]) 
             
             # 专家输出与权重相乘
-            final_output_1[idx] += expert_output_1 * weights[idx, top].unsqueeze(1).unsqueeze(2).unsqueeze(3)
-            final_output_2[idx] += expert_output_2 * weights[idx, top].unsqueeze(1).unsqueeze(2).unsqueeze(3)
-            final_output_3[idx] += expert_output_3 * weights[idx, top].unsqueeze(1).unsqueeze(2).unsqueeze(3)
+            final_output_1[idx] += expert_output_1 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+            final_output_2[idx] += expert_output_2 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+            final_output_3[idx] += expert_output_3 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
             
         
         # # 专家的结果相加
