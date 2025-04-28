@@ -120,8 +120,10 @@ class BEVFusion(Base3DFusionModel):
     ) -> torch.Tensor:
         B, N, C, H, W = x.size()
         x = x.view(B * N, C, H, W)
-
+        # print('before camera backbone, x shape is ',x.shape)
         x = self.encoders["camera"]["backbone"](x)
+        # print('after camera backbone,x shape is ',[item.shape for item in x])
+        # exit()
         x = self.encoders["camera"]["neck"](x)
 
         if not isinstance(x, torch.Tensor):
