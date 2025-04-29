@@ -1,0 +1,1899 @@
+2025-04-23 09:16:13,798 - mmdet3d - INFO - Config:
+seed = 0
+deterministic = False
+checkpoint_config = dict(interval=1, max_keep_ckpts=1)
+log_config = dict(
+    interval=50,
+    hooks=[dict(type='TextLoggerHook'),
+           dict(type='TensorboardLoggerHook')])
+load_from = None
+resume_from = None
+cudnn_benchmark = False
+fp16 = dict(loss_scale=dict(growth_interval=2000))
+max_epochs = 6
+runner = dict(type='CustomEpochBasedRunner', max_epochs=6)
+dataset_type = 'NuScenesDataset'
+dataset_root = 'data/nuscenes/'
+gt_paste_stop_epoch = -1
+reduce_beams = 32
+load_dim = 5
+use_dim = 5
+load_augmented = None
+point_cloud_range = [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+voxel_size = [0.075, 0.075, 0.2]
+image_size = [256, 704]
+augment2d = dict(
+    resize=[[0.38, 0.55], [0.48, 0.48]],
+    rotate=[-5.4, 5.4],
+    gridmask=dict(prob=0.0, fixed_prob=True))
+augment3d = dict(
+    scale=[0.9, 1.1], rotate=[-0.78539816, 0.78539816], translate=0.5)
+object_classes = [
+    'car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier',
+    'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+]
+map_classes = [
+    'drivable_area', 'ped_crossing', 'walkway', 'stop_line', 'carpark_area',
+    'divider'
+]
+input_modality = dict(
+    use_lidar=True,
+    use_camera=True,
+    use_radar=False,
+    use_map=False,
+    use_external=False)
+train_pipeline = [
+    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        reduce_beams=32,
+        load_augmented=None),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=0,
+        load_dim=5,
+        use_dim=5,
+        reduce_beams=32,
+        pad_empty_sweeps=True,
+        remove_close=True,
+        load_augmented=None),
+    dict(
+        type='LoadRadarPointsMultiSweeps',
+        load_dim=18,
+        sweeps_num=6,
+        use_dim=[
+            0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+            47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+        ],
+        max_num=2500,
+        compensate_velocity=True,
+        filtering='none',
+        normalize=False),
+    dict(
+        type='LoadAnnotations3D',
+        with_bbox_3d=True,
+        with_label_3d=True,
+        with_attr_label=False),
+    dict(
+        type='ObjectPaste',
+        stop_epoch=-1,
+        db_sampler=dict(
+            dataset_root='data/nuscenes/',
+            info_path='data/nuscenes/nuscenes_dbinfos_train.pkl',
+            rate=1.0,
+            prepare=dict(
+                filter_by_difficulty=[-1],
+                filter_by_min_points=dict(
+                    car=5,
+                    truck=5,
+                    bus=5,
+                    trailer=5,
+                    construction_vehicle=5,
+                    traffic_cone=5,
+                    barrier=5,
+                    motorcycle=5,
+                    bicycle=5,
+                    pedestrian=5)),
+            classes=[
+                'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                'barrier', 'motorcycle', 'bicycle', 'pedestrian',
+                'traffic_cone'
+            ],
+            sample_groups=dict(
+                car=2,
+                truck=3,
+                construction_vehicle=7,
+                bus=4,
+                trailer=6,
+                barrier=2,
+                motorcycle=6,
+                bicycle=6,
+                pedestrian=2,
+                traffic_cone=2),
+            points_loader=dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=5,
+                use_dim=5,
+                reduce_beams=32))),
+    dict(
+        type='ImageAug3D',
+        final_dim=[256, 704],
+        resize_lim=[0.38, 0.55],
+        bot_pct_lim=[0.0, 0.0],
+        rot_lim=[-5.4, 5.4],
+        rand_flip=True,
+        is_train=True),
+    dict(
+        type='GlobalRotScaleTrans',
+        resize_lim=[0.9, 1.1],
+        rot_lim=[-0.78539816, 0.78539816],
+        trans_lim=0.5,
+        is_train=True),
+    dict(type='RandomFlip3D'),
+    dict(
+        type='PointsRangeFilter',
+        point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+    dict(
+        type='ObjectRangeFilter',
+        point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+    dict(
+        type='ObjectNameFilter',
+        classes=[
+            'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+            'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+        ]),
+    dict(
+        type='ImageNormalize',
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]),
+    dict(
+        type='GridMask',
+        use_h=True,
+        use_w=True,
+        max_epoch=6,
+        rotate=1,
+        offset=False,
+        ratio=0.5,
+        mode=1,
+        prob=0.0,
+        fixed_prob=True),
+    dict(type='PointShuffle'),
+    dict(
+        type='DefaultFormatBundle3D',
+        classes=[
+            'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+            'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+        ]),
+    dict(
+        type='Collect3D',
+        keys=['img', 'points', 'radar', 'gt_bboxes_3d', 'gt_labels_3d'],
+        meta_keys=[
+            'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera',
+            'lidar2image', 'camera2lidar', 'img_aug_matrix', 'lidar_aug_matrix'
+        ]),
+    dict(type='GTDepth', keyframe_only=True)
+]
+test_pipeline = [
+    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        reduce_beams=32,
+        load_augmented=None),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=9,
+        load_dim=5,
+        use_dim=5,
+        reduce_beams=32,
+        pad_empty_sweeps=True,
+        remove_close=True,
+        load_augmented=None),
+    dict(
+        type='LoadRadarPointsMultiSweeps',
+        load_dim=18,
+        sweeps_num=6,
+        use_dim=[
+            0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+            47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+        ],
+        max_num=2500,
+        compensate_velocity=True,
+        filtering='none',
+        normalize=False),
+    dict(
+        type='LoadAnnotations3D',
+        with_bbox_3d=True,
+        with_label_3d=True,
+        with_attr_label=False),
+    dict(
+        type='ImageAug3D',
+        final_dim=[256, 704],
+        resize_lim=[0.48, 0.48],
+        bot_pct_lim=[0.0, 0.0],
+        rot_lim=[0.0, 0.0],
+        rand_flip=False,
+        is_train=False),
+    dict(
+        type='GlobalRotScaleTrans',
+        resize_lim=[1.0, 1.0],
+        rot_lim=[0.0, 0.0],
+        trans_lim=0.0,
+        is_train=False),
+    dict(
+        type='PointsRangeFilter',
+        point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+    dict(
+        type='ImageNormalize',
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]),
+    dict(
+        type='DefaultFormatBundle3D',
+        classes=[
+            'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+            'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+        ]),
+    dict(
+        type='Collect3D',
+        keys=['img', 'points', 'radar', 'gt_bboxes_3d', 'gt_labels_3d'],
+        meta_keys=[
+            'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera',
+            'lidar2image', 'camera2lidar', 'img_aug_matrix', 'lidar_aug_matrix'
+        ]),
+    dict(type='GTDepth', keyframe_only=True)
+]
+data = dict(
+    samples_per_gpu=4,
+    workers_per_gpu=4,
+    train=dict(
+        type='CBGSDataset',
+        dataset=dict(
+            type='NuScenesDataset',
+            dataset_root='data/nuscenes/',
+            ann_file='data/nuscenes/nuscenes_infos_train.pkl',
+            pipeline=[
+                dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+                dict(
+                    type='LoadPointsFromFile',
+                    coord_type='LIDAR',
+                    load_dim=5,
+                    use_dim=5,
+                    reduce_beams=32,
+                    load_augmented=None),
+                dict(
+                    type='LoadPointsFromMultiSweeps',
+                    sweeps_num=0,
+                    load_dim=5,
+                    use_dim=5,
+                    reduce_beams=32,
+                    pad_empty_sweeps=True,
+                    remove_close=True,
+                    load_augmented=None),
+                dict(
+                    type='LoadRadarPointsMultiSweeps',
+                    load_dim=18,
+                    sweeps_num=6,
+                    use_dim=[
+                        0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+                        27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+                        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+                        55, 56
+                    ],
+                    max_num=2500,
+                    compensate_velocity=True,
+                    filtering='none',
+                    normalize=False),
+                dict(
+                    type='LoadAnnotations3D',
+                    with_bbox_3d=True,
+                    with_label_3d=True,
+                    with_attr_label=False),
+                dict(
+                    type='ObjectPaste',
+                    stop_epoch=-1,
+                    db_sampler=dict(
+                        dataset_root='data/nuscenes/',
+                        info_path='data/nuscenes/nuscenes_dbinfos_train.pkl',
+                        rate=1.0,
+                        prepare=dict(
+                            filter_by_difficulty=[-1],
+                            filter_by_min_points=dict(
+                                car=5,
+                                truck=5,
+                                bus=5,
+                                trailer=5,
+                                construction_vehicle=5,
+                                traffic_cone=5,
+                                barrier=5,
+                                motorcycle=5,
+                                bicycle=5,
+                                pedestrian=5)),
+                        classes=[
+                            'car', 'truck', 'construction_vehicle', 'bus',
+                            'trailer', 'barrier', 'motorcycle', 'bicycle',
+                            'pedestrian', 'traffic_cone'
+                        ],
+                        sample_groups=dict(
+                            car=2,
+                            truck=3,
+                            construction_vehicle=7,
+                            bus=4,
+                            trailer=6,
+                            barrier=2,
+                            motorcycle=6,
+                            bicycle=6,
+                            pedestrian=2,
+                            traffic_cone=2),
+                        points_loader=dict(
+                            type='LoadPointsFromFile',
+                            coord_type='LIDAR',
+                            load_dim=5,
+                            use_dim=5,
+                            reduce_beams=32))),
+                dict(
+                    type='ImageAug3D',
+                    final_dim=[256, 704],
+                    resize_lim=[0.38, 0.55],
+                    bot_pct_lim=[0.0, 0.0],
+                    rot_lim=[-5.4, 5.4],
+                    rand_flip=True,
+                    is_train=True),
+                dict(
+                    type='GlobalRotScaleTrans',
+                    resize_lim=[0.9, 1.1],
+                    rot_lim=[-0.78539816, 0.78539816],
+                    trans_lim=0.5,
+                    is_train=True),
+                dict(type='RandomFlip3D'),
+                dict(
+                    type='PointsRangeFilter',
+                    point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+                dict(
+                    type='ObjectRangeFilter',
+                    point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+                dict(
+                    type='ObjectNameFilter',
+                    classes=[
+                        'car', 'truck', 'construction_vehicle', 'bus',
+                        'trailer', 'barrier', 'motorcycle', 'bicycle',
+                        'pedestrian', 'traffic_cone'
+                    ]),
+                dict(
+                    type='ImageNormalize',
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]),
+                dict(
+                    type='GridMask',
+                    use_h=True,
+                    use_w=True,
+                    max_epoch=6,
+                    rotate=1,
+                    offset=False,
+                    ratio=0.5,
+                    mode=1,
+                    prob=0.0,
+                    fixed_prob=True),
+                dict(type='PointShuffle'),
+                dict(
+                    type='DefaultFormatBundle3D',
+                    classes=[
+                        'car', 'truck', 'construction_vehicle', 'bus',
+                        'trailer', 'barrier', 'motorcycle', 'bicycle',
+                        'pedestrian', 'traffic_cone'
+                    ]),
+                dict(
+                    type='Collect3D',
+                    keys=[
+                        'img', 'points', 'radar', 'gt_bboxes_3d',
+                        'gt_labels_3d'
+                    ],
+                    meta_keys=[
+                        'camera_intrinsics', 'camera2ego', 'lidar2ego',
+                        'lidar2camera', 'lidar2image', 'camera2lidar',
+                        'img_aug_matrix', 'lidar_aug_matrix'
+                    ]),
+                dict(type='GTDepth', keyframe_only=True)
+            ],
+            object_classes=[
+                'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                'barrier', 'motorcycle', 'bicycle', 'pedestrian',
+                'traffic_cone'
+            ],
+            map_classes=[
+                'drivable_area', 'ped_crossing', 'walkway', 'stop_line',
+                'carpark_area', 'divider'
+            ],
+            modality=dict(
+                use_lidar=True,
+                use_camera=True,
+                use_radar=False,
+                use_map=False,
+                use_external=False),
+            test_mode=False,
+            use_valid_flag=True,
+            box_type_3d='LiDAR')),
+    val=dict(
+        type='NuScenesDataset',
+        dataset_root='data/nuscenes/',
+        ann_file='data/nuscenes/nuscenes_infos_val.pkl',
+        pipeline=[
+            dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+            dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=5,
+                use_dim=5,
+                reduce_beams=32,
+                load_augmented=None),
+            dict(
+                type='LoadPointsFromMultiSweeps',
+                sweeps_num=9,
+                load_dim=5,
+                use_dim=5,
+                reduce_beams=32,
+                pad_empty_sweeps=True,
+                remove_close=True,
+                load_augmented=None),
+            dict(
+                type='LoadRadarPointsMultiSweeps',
+                load_dim=18,
+                sweeps_num=6,
+                use_dim=[
+                    0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+                    28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+                    43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+                ],
+                max_num=2500,
+                compensate_velocity=True,
+                filtering='none',
+                normalize=False),
+            dict(
+                type='LoadAnnotations3D',
+                with_bbox_3d=True,
+                with_label_3d=True,
+                with_attr_label=False),
+            dict(
+                type='ImageAug3D',
+                final_dim=[256, 704],
+                resize_lim=[0.48, 0.48],
+                bot_pct_lim=[0.0, 0.0],
+                rot_lim=[0.0, 0.0],
+                rand_flip=False,
+                is_train=False),
+            dict(
+                type='GlobalRotScaleTrans',
+                resize_lim=[1.0, 1.0],
+                rot_lim=[0.0, 0.0],
+                trans_lim=0.0,
+                is_train=False),
+            dict(
+                type='PointsRangeFilter',
+                point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+            dict(
+                type='ImageNormalize',
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]),
+            dict(
+                type='DefaultFormatBundle3D',
+                classes=[
+                    'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                    'barrier', 'motorcycle', 'bicycle', 'pedestrian',
+                    'traffic_cone'
+                ]),
+            dict(
+                type='Collect3D',
+                keys=[
+                    'img', 'points', 'radar', 'gt_bboxes_3d', 'gt_labels_3d'
+                ],
+                meta_keys=[
+                    'camera_intrinsics', 'camera2ego', 'lidar2ego',
+                    'lidar2camera', 'lidar2image', 'camera2lidar',
+                    'img_aug_matrix', 'lidar_aug_matrix'
+                ]),
+            dict(type='GTDepth', keyframe_only=True)
+        ],
+        object_classes=[
+            'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+            'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+        ],
+        map_classes=[
+            'drivable_area', 'ped_crossing', 'walkway', 'stop_line',
+            'carpark_area', 'divider'
+        ],
+        modality=dict(
+            use_lidar=True,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False),
+        test_mode=False,
+        box_type_3d='LiDAR'),
+    test=dict(
+        type='NuScenesDataset',
+        dataset_root='data/nuscenes/',
+        ann_file='data/nuscenes/nuscenes_infos_val.pkl',
+        pipeline=[
+            dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+            dict(
+                type='LoadPointsFromFile',
+                coord_type='LIDAR',
+                load_dim=5,
+                use_dim=5,
+                reduce_beams=32,
+                load_augmented=None),
+            dict(
+                type='LoadPointsFromMultiSweeps',
+                sweeps_num=9,
+                load_dim=5,
+                use_dim=5,
+                reduce_beams=32,
+                pad_empty_sweeps=True,
+                remove_close=True,
+                load_augmented=None),
+            dict(
+                type='LoadRadarPointsMultiSweeps',
+                load_dim=18,
+                sweeps_num=6,
+                use_dim=[
+                    0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+                    28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+                    43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+                ],
+                max_num=2500,
+                compensate_velocity=True,
+                filtering='none',
+                normalize=False),
+            dict(
+                type='LoadAnnotations3D',
+                with_bbox_3d=True,
+                with_label_3d=True,
+                with_attr_label=False),
+            dict(
+                type='ImageAug3D',
+                final_dim=[256, 704],
+                resize_lim=[0.48, 0.48],
+                bot_pct_lim=[0.0, 0.0],
+                rot_lim=[0.0, 0.0],
+                rand_flip=False,
+                is_train=False),
+            dict(
+                type='GlobalRotScaleTrans',
+                resize_lim=[1.0, 1.0],
+                rot_lim=[0.0, 0.0],
+                trans_lim=0.0,
+                is_train=False),
+            dict(
+                type='PointsRangeFilter',
+                point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+            dict(
+                type='ImageNormalize',
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]),
+            dict(
+                type='DefaultFormatBundle3D',
+                classes=[
+                    'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                    'barrier', 'motorcycle', 'bicycle', 'pedestrian',
+                    'traffic_cone'
+                ]),
+            dict(
+                type='Collect3D',
+                keys=[
+                    'img', 'points', 'radar', 'gt_bboxes_3d', 'gt_labels_3d'
+                ],
+                meta_keys=[
+                    'camera_intrinsics', 'camera2ego', 'lidar2ego',
+                    'lidar2camera', 'lidar2image', 'camera2lidar',
+                    'img_aug_matrix', 'lidar_aug_matrix'
+                ]),
+            dict(type='GTDepth', keyframe_only=True)
+        ],
+        object_classes=[
+            'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+            'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
+        ],
+        map_classes=[
+            'drivable_area', 'ped_crossing', 'walkway', 'stop_line',
+            'carpark_area', 'divider'
+        ],
+        modality=dict(
+            use_lidar=True,
+            use_camera=True,
+            use_radar=False,
+            use_map=False,
+            use_external=False),
+        test_mode=True,
+        box_type_3d='LiDAR'))
+evaluation = dict(
+    interval=1,
+    pipeline=[
+        dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=5,
+            use_dim=5,
+            reduce_beams=32,
+            load_augmented=None),
+        dict(
+            type='LoadPointsFromMultiSweeps',
+            sweeps_num=9,
+            load_dim=5,
+            use_dim=5,
+            reduce_beams=32,
+            pad_empty_sweeps=True,
+            remove_close=True,
+            load_augmented=None),
+        dict(
+            type='LoadRadarPointsMultiSweeps',
+            load_dim=18,
+            sweeps_num=6,
+            use_dim=[
+                0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+                45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+            ],
+            max_num=2500,
+            compensate_velocity=True,
+            filtering='none',
+            normalize=False),
+        dict(
+            type='LoadAnnotations3D',
+            with_bbox_3d=True,
+            with_label_3d=True,
+            with_attr_label=False),
+        dict(
+            type='ImageAug3D',
+            final_dim=[256, 704],
+            resize_lim=[0.48, 0.48],
+            bot_pct_lim=[0.0, 0.0],
+            rot_lim=[0.0, 0.0],
+            rand_flip=False,
+            is_train=False),
+        dict(
+            type='GlobalRotScaleTrans',
+            resize_lim=[1.0, 1.0],
+            rot_lim=[0.0, 0.0],
+            trans_lim=0.0,
+            is_train=False),
+        dict(
+            type='PointsRangeFilter',
+            point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]),
+        dict(
+            type='ImageNormalize',
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]),
+        dict(
+            type='DefaultFormatBundle3D',
+            classes=[
+                'car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                'barrier', 'motorcycle', 'bicycle', 'pedestrian',
+                'traffic_cone'
+            ]),
+        dict(
+            type='Collect3D',
+            keys=['img', 'points', 'radar', 'gt_bboxes_3d', 'gt_labels_3d'],
+            meta_keys=[
+                'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera',
+                'lidar2image', 'camera2lidar', 'img_aug_matrix',
+                'lidar_aug_matrix'
+            ]),
+        dict(type='GTDepth', keyframe_only=True)
+    ])
+radar_sweeps = 6
+radar_max_points = 2500
+radar_use_dims = [
+    0, 1, 2, 5, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51, 52, 53, 54, 55, 56
+]
+radar_compensate_velocity = True
+radar_filtering = 'none'
+radar_voxel_size = [0.8, 0.8, 8]
+radar_jitter = 0
+radar_normalize = False
+model = dict(
+    type='BEVFusion',
+    encoders=dict(
+        camera=dict(
+            neck=dict(
+                type='GeneralizedLSSFPN',
+                in_channels=[512, 1024, 2048],
+                out_channels=256,
+                start_level=0,
+                num_outs=3,
+                norm_cfg=dict(type='BN2d', requires_grad=True),
+                act_cfg=dict(type='ReLU', inplace=True),
+                upsample_cfg=dict(mode='bilinear', align_corners=False)),
+            vtransform=dict(
+                type='DepthLSSTransform',
+                in_channels=256,
+                out_channels=80,
+                image_size=[256, 704],
+                feature_size=[32, 88],
+                xbound=[-54.0, 54.0, 0.3],
+                ybound=[-54.0, 54.0, 0.3],
+                zbound=[-10.0, 10.0, 20.0],
+                dbound=[1.0, 60.0, 0.5],
+                downsample=2),
+            backbone=dict(
+                type='ResNet',
+                depth=101,
+                num_stages=4,
+                out_indices=[1, 2, 3],
+                norm_cfg=dict(type='BN2d', requires_grad=True),
+                norm_eval=False)),
+        lidar=dict(
+            voxelize=dict(
+                max_num_points=10,
+                point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0],
+                voxel_size=[0.075, 0.075, 0.2],
+                max_voxels=[120000, 160000]),
+            backbone=dict(
+                type='SparseEncoder',
+                in_channels=5,
+                sparse_shape=[1440, 1440, 41],
+                output_channels=128,
+                order=['conv', 'norm', 'act'],
+                encoder_channels=[[16, 16, 32], [32, 32, 64], [64, 64, 128],
+                                  [128, 128]],
+                encoder_paddings=[[0, 0, 1], [0, 0, 1], [0, 0, [1, 1, 0]],
+                                  [0, 0]],
+                block_type='basicblock'))),
+    fuser=dict(type='ConvFuser', in_channels=[80, 256], out_channels=256),
+    heads=dict(
+        map=None,
+        object=dict(
+            type='TransFusionHead',
+            num_proposals=200,
+            auxiliary=True,
+            in_channels=512,
+            hidden_channel=128,
+            num_classes=10,
+            num_decoder_layers=1,
+            num_heads=8,
+            nms_kernel_size=3,
+            ffn_channel=256,
+            dropout=0.1,
+            bn_momentum=0.1,
+            activation='relu',
+            train_cfg=dict(
+                dataset='nuScenes',
+                point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0],
+                grid_size=[1440, 1440, 41],
+                voxel_size=[0.075, 0.075, 0.2],
+                out_size_factor=8,
+                gaussian_overlap=0.1,
+                min_radius=2,
+                pos_weight=-1,
+                code_weights=[
+                    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2
+                ],
+                assigner=dict(
+                    type='HungarianAssigner3D',
+                    iou_calculator=dict(
+                        type='BboxOverlaps3D', coordinate='lidar'),
+                    cls_cost=dict(
+                        type='FocalLossCost',
+                        gamma=2.0,
+                        alpha=0.25,
+                        weight=0.15),
+                    reg_cost=dict(type='BBoxBEVL1Cost', weight=0.25),
+                    iou_cost=dict(type='IoU3DCost', weight=0.25))),
+            test_cfg=dict(
+                dataset='nuScenes',
+                grid_size=[1440, 1440, 41],
+                out_size_factor=8,
+                voxel_size=[0.075, 0.075],
+                pc_range=[-54.0, -54.0],
+                nms_type=None),
+            common_heads=dict(
+                center=[2, 2],
+                height=[1, 2],
+                dim=[3, 2],
+                rot=[2, 2],
+                vel=[2, 2]),
+            bbox_coder=dict(
+                type='TransFusionBBoxCoder',
+                pc_range=[-54.0, -54.0],
+                post_center_range=[-61.2, -61.2, -10.0, 61.2, 61.2, 10.0],
+                score_threshold=0.0,
+                out_size_factor=8,
+                voxel_size=[0.075, 0.075],
+                code_size=10),
+            loss_cls=dict(
+                type='FocalLoss',
+                use_sigmoid=True,
+                gamma=2.0,
+                alpha=0.25,
+                reduction='mean',
+                loss_weight=1.0),
+            loss_heatmap=dict(
+                type='GaussianFocalLoss', reduction='mean', loss_weight=1.0),
+            loss_bbox=dict(type='L1Loss', reduction='mean',
+                           loss_weight=0.25))),
+    decoder=dict(
+        backbone=dict(
+            type='SECOND',
+            in_channels=256,
+            out_channels=[128, 256],
+            layer_nums=[5, 5],
+            layer_strides=[1, 2],
+            norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
+            conv_cfg=dict(type='Conv2d', bias=False)),
+        neck=dict(
+            type='SECONDFPN',
+            in_channels=[128, 256],
+            out_channels=[256, 256],
+            upsample_strides=[1, 2],
+            norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
+            upsample_cfg=dict(type='deconv', bias=False),
+            use_conv_for_no_stride=True)))
+optimizer = dict(type='AdamW', lr=0.0002, weight_decay=0.01)
+optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+lr_config = dict(
+    policy='CosineAnnealing',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=0.33333333,
+    min_lr_ratio=0.001)
+momentum_config = dict(policy='cyclic')
+run_dir = 'runs/run-c9b79eff-30748948'
+
+2025-04-23 09:16:13,799 - mmdet3d - INFO - Set random seed to 0, deterministic mode: False
+2025-04-23 09:16:14,298 - mmdet3d - INFO - load 3068 pedestrian database infos
+2025-04-23 09:16:14,298 - mmdet3d - INFO - load 4082 car database infos
+2025-04-23 09:16:14,298 - mmdet3d - INFO - load 773 traffic_cone database infos
+2025-04-23 09:16:14,298 - mmdet3d - INFO - load 147 bicycle database infos
+2025-04-23 09:16:14,298 - mmdet3d - INFO - load 1851 barrier database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 451 truck database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 337 bus database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 174 construction_vehicle database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 57 movable_object.pushable_pullable database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 179 motorcycle database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 13 movable_object.debris database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 59 trailer database infos
+2025-04-23 09:16:14,299 - mmdet3d - INFO - load 25 human.pedestrian.personal_mobility database infos
+2025-04-23 09:16:14,319 - mmdet3d - INFO - After filter database:
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 2395 pedestrian database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 2287 car database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 381 traffic_cone database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 108 bicycle database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 1442 barrier database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 381 truck database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 275 bus database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 155 construction_vehicle database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 57 movable_object.pushable_pullable database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 124 motorcycle database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 13 movable_object.debris database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 57 trailer database infos
+2025-04-23 09:16:14,320 - mmdet3d - INFO - load 25 human.pedestrian.personal_mobility database infos
+/opt/conda/lib/python3.8/site-packages/torch/functional.py:445: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at  /opt/conda/conda-bld/pytorch_1639180588308/work/aten/src/ATen/native/TensorShape.cpp:2157.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+2025-04-23 09:16:14,837 - mmdet3d - INFO - initialize ResNet with init_cfg [{'type': 'Kaiming', 'layer': 'Conv2d'}, {'type': 'Constant', 'val': 1, 'layer': ['_BatchNorm', 'GroupNorm']}]
+2025-04-23 09:16:15,160 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,161 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,162 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,163 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,164 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,165 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,166 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,167 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,169 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,170 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,172 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,173 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,175 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,176 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,178 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,179 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,180 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,182 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,183 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,185 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,186 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,188 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,189 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,190 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,192 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,193 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,195 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,196 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,198 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,199 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,214 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,220 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+2025-04-23 09:16:15,225 - mmdet3d - INFO - initialize Bottleneck with init_cfg {'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+/opt/conda/lib/python3.8/site-packages/mmcv/runner/base_module.py:127: UserWarning: init_weights of ResNet has been called more than once.
+  warnings.warn(f'init_weights of {self.__class__.__name__} has '
+2025-04-23 09:16:15,268 - mmdet3d - INFO - Model:
+BEVFusion(
+  (encoders): ModuleDict(
+    (camera): ModuleDict(
+      (backbone): ResNet(
+        (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+        (layer1): ResLayer(
+          (0): Bottleneck(
+            (conv1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+            (downsample): Sequential(
+              (0): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+              (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (1): Bottleneck(
+            (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (2): Bottleneck(
+            (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+        )
+        (layer2): ResLayer(
+          (0): Bottleneck(
+            (conv1): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+            (downsample): Sequential(
+              (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)
+              (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (1): Bottleneck(
+            (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (2): Bottleneck(
+            (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (3): Bottleneck(
+            (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+        )
+        (layer3): ResLayer(
+          (0): Bottleneck(
+            (conv1): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+            (downsample): Sequential(
+              (0): Conv2d(512, 1024, kernel_size=(1, 1), stride=(2, 2), bias=False)
+              (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (1): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (2): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (3): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (4): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (5): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (6): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (7): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (8): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (9): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (10): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (11): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (12): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (13): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (14): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (15): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (16): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (17): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (18): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (19): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (20): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (21): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (22): Bottleneck(
+            (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+        )
+        (layer4): ResLayer(
+          (0): Bottleneck(
+            (conv1): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+            (downsample): Sequential(
+              (0): Conv2d(1024, 2048, kernel_size=(1, 1), stride=(2, 2), bias=False)
+              (1): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (1): Bottleneck(
+            (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+          (2): Bottleneck(
+            (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (relu): ReLU(inplace=True)
+          )
+          init_cfg={'type': 'Constant', 'val': 0, 'override': {'name': 'norm3'}}
+        )
+      )
+      init_cfg=[{'type': 'Kaiming', 'layer': 'Conv2d'}, {'type': 'Constant', 'val': 1, 'layer': ['_BatchNorm', 'GroupNorm']}]
+      (neck): GeneralizedLSSFPN(
+        (lateral_convs): ModuleList(
+          (0): ConvModule(
+            (conv): Conv2d(768, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (activate): ReLU(inplace=True)
+          )
+          (1): ConvModule(
+            (conv): Conv2d(3072, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (activate): ReLU(inplace=True)
+          )
+        )
+        (fpn_convs): ModuleList(
+          (0): ConvModule(
+            (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (activate): ReLU(inplace=True)
+          )
+          (1): ConvModule(
+            (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (activate): ReLU(inplace=True)
+          )
+        )
+      )
+      (vtransform): DepthLSSTransform(
+        (dtransform): Sequential(
+          (0): Conv2d(1, 8, kernel_size=(1, 1), stride=(1, 1))
+          (1): BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(8, 32, kernel_size=(5, 5), stride=(4, 4), padding=(2, 2))
+          (4): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+          (6): Conv2d(32, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+          (7): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (8): ReLU(inplace=True)
+        )
+        (depthnet): Sequential(
+          (0): Conv2d(320, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+          (6): Conv2d(256, 198, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (downsample): Sequential(
+          (0): Conv2d(80, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(80, 80, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+          (6): Conv2d(80, 80, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (7): BatchNorm2d(80, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (8): ReLU(inplace=True)
+        )
+      )
+    )
+    (lidar): ModuleDict(
+      (voxelize): Voxelization(voxel_size=[0.075, 0.075, 0.2], point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0], max_num_points=10, max_voxels=(120000, 160000), deterministic=True)
+      (backbone): SparseEncoder(
+        (conv_input): SparseSequential(
+          (0): SubMConv3d()
+          (1): BatchNorm1d(16, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+        (encoder_layers): SparseSequential(
+          (encoder_layer1): SparseSequential(
+            (0): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(16, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(16, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (1): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(16, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(16, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (2): SparseSequential(
+              (0): SparseConv3d()
+              (1): BatchNorm1d(32, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (2): ReLU(inplace=True)
+            )
+          )
+          (encoder_layer2): SparseSequential(
+            (0): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(32, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(32, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (1): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(32, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(32, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (2): SparseSequential(
+              (0): SparseConv3d()
+              (1): BatchNorm1d(64, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (2): ReLU(inplace=True)
+            )
+          )
+          (encoder_layer3): SparseSequential(
+            (0): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(64, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(64, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (1): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(64, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(64, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (2): SparseSequential(
+              (0): SparseConv3d()
+              (1): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (2): ReLU(inplace=True)
+            )
+          )
+          (encoder_layer4): SparseSequential(
+            (0): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+            (1): SparseBasicBlock(
+              (conv1): SubMConv3d()
+              (bn1): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (conv2): SubMConv3d()
+              (bn2): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+              (relu): ReLU(inplace=True)
+            )
+          )
+        )
+        (conv_out): SparseSequential(
+          (0): SparseConv3d()
+          (1): BatchNorm1d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+  (fuser): ConvFuser(
+    (0): Conv2d(336, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): ReLU(inplace=True)
+  )
+  (decoder): ModuleDict(
+    (backbone): SECOND(
+      (blocks): ModuleList(
+        (0): Sequential(
+          (0): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+          (6): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (7): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (8): ReLU(inplace=True)
+          (9): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (10): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (11): ReLU(inplace=True)
+          (12): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (13): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (14): ReLU(inplace=True)
+          (15): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (16): BatchNorm2d(128, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (17): ReLU(inplace=True)
+        )
+        (1): Sequential(
+          (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (4): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+          (6): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (7): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (8): ReLU(inplace=True)
+          (9): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (10): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (11): ReLU(inplace=True)
+          (12): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (13): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (14): ReLU(inplace=True)
+          (15): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (16): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (17): ReLU(inplace=True)
+        )
+      )
+    )
+    init_cfg={'type': 'Kaiming', 'layer': 'Conv2d'}
+    (neck): SECONDFPN(
+      (deblocks): ModuleList(
+        (0): Sequential(
+          (0): Conv2d(128, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+        (1): Sequential(
+          (0): ConvTranspose2d(256, 256, kernel_size=(2, 2), stride=(2, 2), bias=False)
+          (1): BatchNorm2d(256, eps=0.001, momentum=0.01, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+    )
+    init_cfg=[{'type': 'Kaiming', 'layer': 'ConvTranspose2d'}, {'type': 'Constant', 'layer': 'NaiveSyncBatchNorm2d', 'val': 1.0}]
+  )
+  (heads): ModuleDict(
+    (object): TransFusionHead(
+      (loss_cls): FocalLoss()
+      (loss_bbox): L1Loss()
+      (loss_iou): VarifocalLoss()
+      (loss_heatmap): GaussianFocalLoss()
+      (shared_conv): Conv2d(512, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (heatmap_head): Sequential(
+        (0): ConvModule(
+          (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (activate): ReLU(inplace=True)
+        )
+        (1): Conv2d(128, 10, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (class_encoding): Conv1d(10, 128, kernel_size=(1,), stride=(1,))
+      (decoder): ModuleList(
+        (0): TransformerDecoderLayer(
+          (self_attn): MultiheadAttention(
+            (out_proj): Linear(in_features=128, out_features=128, bias=True)
+          )
+          (multihead_attn): MultiheadAttention(
+            (out_proj): Linear(in_features=128, out_features=128, bias=True)
+          )
+          (linear1): Linear(in_features=128, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (linear2): Linear(in_features=256, out_features=128, bias=True)
+          (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (norm3): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (dropout1): Dropout(p=0.1, inplace=False)
+          (dropout2): Dropout(p=0.1, inplace=False)
+          (dropout3): Dropout(p=0.1, inplace=False)
+          (self_posembed): PositionEmbeddingLearned(
+            (position_embedding_head): Sequential(
+              (0): Conv1d(2, 128, kernel_size=(1,), stride=(1,))
+              (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (2): ReLU(inplace=True)
+              (3): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+            )
+          )
+          (cross_posembed): PositionEmbeddingLearned(
+            (position_embedding_head): Sequential(
+              (0): Conv1d(2, 128, kernel_size=(1,), stride=(1,))
+              (1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (2): ReLU(inplace=True)
+              (3): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+            )
+          )
+        )
+      )
+      (prediction_heads): ModuleList(
+        (0): FFN(
+          (center): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 2, kernel_size=(1,), stride=(1,))
+          )
+          (height): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 1, kernel_size=(1,), stride=(1,))
+          )
+          (dim): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 3, kernel_size=(1,), stride=(1,))
+          )
+          (rot): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 2, kernel_size=(1,), stride=(1,))
+          )
+          (vel): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 2, kernel_size=(1,), stride=(1,))
+          )
+          (heatmap): Sequential(
+            (0): ConvModule(
+              (conv): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+              (bn): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (activate): ReLU(inplace=True)
+            )
+            (1): Conv1d(64, 10, kernel_size=(1,), stride=(1,))
+          )
+        )
+      )
+    )
+  )
+)
+(1, 512, 32, 88)
+(1, 1024, 16, 44)
+(1, 2048, 8, 22)
+2025-04-23 09:16:22,652 - mmdet3d - INFO - Start running, host: root@1cf78a6d245c, work_dir: /bevfusion/runs/run-c9b79eff-30748948
+2025-04-23 09:16:22,653 - mmdet3d - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(HIGH        ) CyclicMomentumUpdaterHook          
+(ABOVE_NORMAL) Fp16OptimizerHook                  
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(HIGH        ) CyclicMomentumUpdaterHook          
+(NORMAL      ) DistSamplerSeedHook                
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(HIGH        ) CyclicMomentumUpdaterHook          
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) Fp16OptimizerHook                  
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(NORMAL      ) DistEvalHook                       
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) DistSamplerSeedHook                
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+(VERY_LOW    ) TensorboardLoggerHook              
+ -------------------- 
+2025-04-23 09:16:22,653 - mmdet3d - INFO - workflow: [('train', 1)], max: 6 epochs
+2025-04-23 09:16:22,655 - mmdet3d - INFO - Checkpoints will be saved to /bevfusion/runs/run-c9b79eff-30748948 by HardDiskBackend.
+/bevfusion/mmdet3d/models/heads/bbox/transfusion.py:273: UserWarning: __floordiv__ is deprecated, and its behavior will change in a future version of pytorch. It currently rounds toward 0 (like the 'trunc' function NOT 'floor'). This results in incorrect rounding for negative values. To keep the current behavior, use torch.div(a, b, rounding_mode='trunc'), or for actual floor division, use torch.div(a, b, rounding_mode='floor').
+  top_proposals_class = top_proposals // heatmap.shape[-1]
+/bevfusion/mmdet3d/models/heads/bbox/transfusion.py:535: UserWarning: __floordiv__ is deprecated, and its behavior will change in a future version of pytorch. It currently rounds toward 0 (like the 'trunc' function NOT 'floor'). This results in incorrect rounding for negative values. To keep the current behavior, use torch.div(a, b, rounding_mode='trunc'), or for actual floor division, use torch.div(a, b, rounding_mode='floor').
+  grid_size[:2] // self.train_cfg["out_size_factor"]
+2025-04-23 09:16:30,303 - mmcv - INFO - Reducer buckets have been rebuilt in this iteration.
+2025-04-23 09:17:11,885 - mmdet3d - INFO - Epoch [1][50/204]	lr: 7.973e-05, eta: 0:19:09, time: 0.979, data_time: 0.109, memory: 16029, loss/object/loss_heatmap: 969.5852, loss/object/layer_-1_loss_cls: 6.9245, loss/object/layer_-1_loss_bbox: 12.6036, stats/object/matched_ious: 0.0028, loss: 989.1132, grad_norm: nan
+2025-04-23 09:17:54,368 - mmdet3d - INFO - Epoch [1][100/204]	lr: 9.307e-05, eta: 0:17:07, time: 0.850, data_time: 0.027, memory: 16072, loss/object/loss_heatmap: 15.2097, loss/object/layer_-1_loss_cls: 5.0632, loss/object/layer_-1_loss_bbox: 11.4086, stats/object/matched_ious: 0.0056, loss: 31.6815, grad_norm: 169.3758
+2025-04-23 09:18:37,023 - mmdet3d - INFO - Epoch [1][150/204]	lr: 1.064e-04, eta: 0:16:00, time: 0.853, data_time: 0.027, memory: 16075, loss/object/loss_heatmap: 2.8015, loss/object/layer_-1_loss_cls: 3.2284, loss/object/layer_-1_loss_bbox: 6.5889, stats/object/matched_ious: 0.0271, loss: 12.6187, grad_norm: 14.7059
+2025-04-23 09:19:19,737 - mmdet3d - INFO - Epoch [1][200/204]	lr: 1.197e-04, eta: 0:15:05, time: 0.854, data_time: 0.027, memory: 16075, loss/object/loss_heatmap: 2.4834, loss/object/layer_-1_loss_cls: 2.1974, loss/object/layer_-1_loss_bbox: 5.2262, stats/object/matched_ious: 0.0441, loss: 9.9071, grad_norm: 13.0400
+2025-04-23 09:19:23,302 - mmdet3d - INFO - Saving checkpoint at 1 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 3s, ETA:   263s[  ] 2/81, 0.6 task/s, elapsed: 3s, ETA:   130s/bevfusion/mmdet3d/core/bbox/coders/transfusion_bbox_coder.py:96: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.post_center_range = torch.tensor(
+[  ] 3/81, 0.9 task/s, elapsed: 3s, ETA:    91s[  ] 4/81, 1.1 task/s, elapsed: 3s, ETA:    67s[  ] 5/81, 1.4 task/s, elapsed: 4s, ETA:    56s[  ] 6/81, 1.6 task/s, elapsed: 4s, ETA:    46s[  ] 7/81, 1.8 task/s, elapsed: 4s, ETA:    41s[  ] 8/81, 2.1 task/s, elapsed: 4s, ETA:    36s[  ] 9/81, 2.0 task/s, elapsed: 5s, ETA:    37s[  ] 10/81, 2.2 task/s, elapsed: 5s, ETA:    33s[  ] 11/81, 2.3 task/s, elapsed: 5s, ETA:    31s[  ] 12/81, 2.5 task/s, elapsed: 5s, ETA:    28s[  ] 13/81, 2.6 task/s, elapsed: 5s, ETA:    26s[  ] 14/81, 2.8 task/s, elapsed: 5s, ETA:    24s[  ] 15/81, 2.8 task/s, elapsed: 5s, ETA:    23s[  ] 16/81, 3.0 task/s, elapsed: 5s, ETA:    21s[  ] 17/81, 3.1 task/s, elapsed: 6s, ETA:    21s[  ] 18/81, 3.3 task/s, elapsed: 6s, ETA:    19s[  ] 19/81, 3.1 task/s, elapsed: 6s, ETA:    20s[  ] 20/81, 3.2 task/s, elapsed: 6s, ETA:    19s[  ] 21/81, 3.3 task/s, elapsed: 6s, ETA:    18s[  ] 22/81, 3.4 task/s, elapsed: 6s, ETA:    17s[  ] 23/81, 3.5 task/s, elapsed: 7s, ETA:    17s[  ] 24/81, 3.6 task/s, elapsed: 7s, ETA:    16s[  ] 25/81, 3.6 task/s, elapsed: 7s, ETA:    15s[  ] 26/81, 3.8 task/s, elapsed: 7s, ETA:    15s[  ] 27/81, 3.8 task/s, elapsed: 7s, ETA:    14s[  ] 28/81, 3.9 task/s, elapsed: 7s, ETA:    13s[  ] 29/81, 3.7 task/s, elapsed: 8s, ETA:    14s[  ] 30/81, 3.8 task/s, elapsed: 8s, ETA:    13s[  ] 31/81, 3.9 task/s, elapsed: 8s, ETA:    13s[  ] 32/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.1 task/s, elapsed: 8s, ETA:    11s[  ] 35/81, 4.1 task/s, elapsed: 8s, ETA:    11s[  ] 36/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 37/81, 4.3 task/s, elapsed: 9s, ETA:    10s[  ] 38/81, 4.4 task/s, elapsed: 9s, ETA:    10s[  ] 39/81, 4.2 task/s, elapsed: 9s, ETA:    10s[  ] 40/81, 4.3 task/s, elapsed: 9s, ETA:    10s[> ] 41/81, 4.3 task/s, elapsed: 10s, ETA:     9s[> ] 42/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 43/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 44/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 47/81, 4.6 task/s, elapsed: 10s, ETA:     7s[> ] 48/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.5 task/s, elapsed: 11s, ETA:     7s[> ] 50/81, 4.5 task/s, elapsed: 11s, ETA:     7s[> ] 51/81, 4.5 task/s, elapsed: 11s, ETA:     7s[> ] 52/81, 4.6 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.6 task/s, elapsed: 11s, ETA:     6s[> ] 54/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 55/81, 4.7 task/s, elapsed: 12s, ETA:     6s[> ] 56/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 57/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 60/81, 5.0 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 4.8 task/s, elapsed: 13s, ETA:     4s[> ] 62/81, 4.9 task/s, elapsed: 13s, ETA:     4s[> ] 63/81, 4.9 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 69/81, 5.1 task/s, elapsed: 13s, ETA:     2s[> ] 70/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 71/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 72/81, 5.3 task/s, elapsed: 14s, ETA:     2s[> ] 73/81, 5.1 task/s, elapsed: 14s, ETA:     2s[> ] 74/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 78/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 79/81, 5.3 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.4 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 24.8 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 26.9 task/s, elapsed: 0s, ETA:     3s[  ] 3/81, 27.5 task/s, elapsed: 0s, ETA:     3s[  ] 4/81, 27.7 task/s, elapsed: 0s, ETA:     3s[  ] 5/81, 28.0 task/s, elapsed: 0s, ETA:     3s[  ] 6/81, 28.2 task/s, elapsed: 0s, ETA:     3s[  ] 7/81, 28.4 task/s, elapsed: 0s, ETA:     3s[  ] 8/81, 28.5 task/s, elapsed: 0s, ETA:     3s[  ] 9/81, 28.7 task/s, elapsed: 0s, ETA:     3s[  ] 10/81, 28.7 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 28.8 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 28.9 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 28.9 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 28.9 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 16/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 17/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 18/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 19/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 29.1 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 29.0 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 29.1 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 29.1 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 29.1 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 27/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 28/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 29/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 30/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 31/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 32/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 33/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 34/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 35/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 36/81, 29.2 task/s, elapsed: 1s, ETA:     2s[  ] 37/81, 29.3 task/s, elapsed: 1s, ETA:     2s[  ] 38/81, 29.3 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 29.3 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 29.3 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 29.3 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 29.3 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 29.3 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 45/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 46/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 47/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 48/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 49/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 50/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 51/81, 29.3 task/s, elapsed: 2s, ETA:     1s[> ] 52/81, 26.5 task/s, elapsed: 2s, ETA:     1s[> ] 53/81, 26.6 task/s, elapsed: 2s, ETA:     1s[> ] 54/81, 26.6 task/s, elapsed: 2s, ETA:     1s[> ] 55/81, 26.7 task/s, elapsed: 2s, ETA:     1s[> ] 56/81, 26.7 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 26.7 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 26.7 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 26.8 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 26.8 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 26.8 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 26.9 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 26.9 task/s, elapsed: 2s, ETA:     1s[> ] 64/81, 26.9 task/s, elapsed: 2s, ETA:     1s[> ] 65/81, 26.8 task/s, elapsed: 2s, ETA:     1s[> ] 66/81, 25.8 task/s, elapsed: 3s, ETA:     1s[> ] 67/81, 25.7 task/s, elapsed: 3s, ETA:     1s[> ] 68/81, 25.7 task/s, elapsed: 3s, ETA:     1s[> ] 69/81, 25.8 task/s, elapsed: 3s, ETA:     0s[> ] 70/81, 25.8 task/s, elapsed: 3s, ETA:     0s[> ] 71/81, 25.9 task/s, elapsed: 3s, ETA:     0s[> ] 72/81, 26.0 task/s, elapsed: 3s, ETA:     0s[> ] 73/81, 26.0 task/s, elapsed: 3s, ETA:     0s[> ] 74/81, 26.0 task/s, elapsed: 3s, ETA:     0s[> ] 75/81, 26.1 task/s, elapsed: 3s, ETA:     0s[> ] 76/81, 26.1 task/s, elapsed: 3s, ETA:     0s[> ] 77/81, 26.2 task/s, elapsed: 3s, ETA:     0s[> ] 78/81, 26.2 task/s, elapsed: 3s, ETA:     0s[> ] 79/81, 26.2 task/s, elapsed: 3s, ETA:     0s[> ] 80/81, 26.3 task/s, elapsed: 3s, ETA:     0s[>>] 81/81, 26.3 task/s, elapsed: 3s, ETA:     0s
+Results writes to /tmp/tmphdjktgei/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c5ab23a0>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 49% 40/81 [00:00<00:00, 392.10it/s] 99% 80/81 [00:00<00:00, 355.91it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0000
+mATE: 0.9988
+mASE: 0.9719
+mAOE: 1.0573
+mAVE: 0.9869
+mAAE: 0.9752
+NDS: 0.0067
+Eval time: 5.3s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+truck               	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bus                 	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.000 	0.988 	0.719 	1.515 	0.895 	0.801 
+motorcycle          	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.000 	1.000 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:19:51,326 - mmdet3d - INFO - Epoch(val) [1][41]	object/car_ap_dist_0.5: 0.0000, object/car_ap_dist_1.0: 0.0000, object/car_ap_dist_2.0: 0.0000, object/car_ap_dist_4.0: 0.0014, object/car_trans_err: 1.0000, object/car_scale_err: 1.0000, object/car_orient_err: 1.0000, object/car_vel_err: 1.0000, object/car_attr_err: 1.0000, object/mATE: 0.9988, object/mASE: 0.9719, object/mAOE: 1.0573, object/mAVE: 0.9869, object/mAAE: 0.9752, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0000, object/truck_ap_dist_2.0: 0.0000, object/truck_ap_dist_4.0: 0.0000, object/truck_trans_err: 1.0000, object/truck_scale_err: 1.0000, object/truck_orient_err: 1.0000, object/truck_vel_err: 1.0000, object/truck_attr_err: 1.0000, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0000, object/bus_trans_err: 1.0000, object/bus_scale_err: 1.0000, object/bus_orient_err: 1.0000, object/bus_vel_err: 1.0000, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 1.0000, object/motorcycle_scale_err: 1.0000, object/motorcycle_orient_err: 1.0000, object/motorcycle_vel_err: 1.0000, object/motorcycle_attr_err: 1.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0000, object/pedestrian_ap_dist_1.0: 0.0000, object/pedestrian_ap_dist_2.0: 0.0000, object/pedestrian_ap_dist_4.0: 0.0000, object/pedestrian_trans_err: 0.9877, object/pedestrian_scale_err: 0.7195, object/pedestrian_orient_err: 1.5154, object/pedestrian_vel_err: 0.8948, object/pedestrian_attr_err: 0.8013, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0000, object/traffic_cone_ap_dist_4.0: 0.0000, object/traffic_cone_trans_err: 1.0000, object/traffic_cone_scale_err: 1.0000, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.0067, object/map: 0.0000
+2025-04-23 09:20:38,179 - mmdet3d - INFO - Epoch [2][50/204]	lr: 1.252e-04, eta: 0:14:13, time: 0.936, data_time: 0.108, memory: 16075, loss/object/loss_heatmap: 2.2927, loss/object/layer_-1_loss_cls: 1.6432, loss/object/layer_-1_loss_bbox: 4.2112, stats/object/matched_ious: 0.0581, loss: 8.1471, grad_norm: 10.4800
+2025-04-23 09:21:20,835 - mmdet3d - INFO - Epoch [2][100/204]	lr: 1.376e-04, eta: 0:13:25, time: 0.853, data_time: 0.026, memory: 16081, loss/object/loss_heatmap: 2.0870, loss/object/layer_-1_loss_cls: 1.1526, loss/object/layer_-1_loss_bbox: 3.3631, stats/object/matched_ious: 0.0724, loss: 6.6027, grad_norm: 9.5288
+2025-04-23 09:22:03,333 - mmdet3d - INFO - Epoch [2][150/204]	lr: 1.500e-04, eta: 0:12:38, time: 0.850, data_time: 0.028, memory: 16081, loss/object/loss_heatmap: 1.8692, loss/object/layer_-1_loss_cls: 0.8963, loss/object/layer_-1_loss_bbox: 2.9032, stats/object/matched_ious: 0.0856, loss: 5.6686, grad_norm: 8.2762
+2025-04-23 09:22:45,863 - mmdet3d - INFO - Epoch [2][200/204]	lr: 1.625e-04, eta: 0:11:53, time: 0.851, data_time: 0.028, memory: 16081, loss/object/loss_heatmap: 1.8414, loss/object/layer_-1_loss_cls: 0.8276, loss/object/layer_-1_loss_bbox: 2.7759, stats/object/matched_ious: 0.1007, loss: 5.4449, grad_norm: 8.4895
+2025-04-23 09:22:49,447 - mmdet3d - INFO - Saving checkpoint at 2 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 4s, ETA:   291s[  ] 2/81, 0.6 task/s, elapsed: 4s, ETA:   143s[  ] 3/81, 0.8 task/s, elapsed: 4s, ETA:   100s[  ] 4/81, 1.0 task/s, elapsed: 4s, ETA:    74s[  ] 5/81, 1.2 task/s, elapsed: 4s, ETA:    61s[  ] 6/81, 1.5 task/s, elapsed: 4s, ETA:    51s[  ] 7/81, 1.6 task/s, elapsed: 4s, ETA:    45s[  ] 8/81, 1.9 task/s, elapsed: 4s, ETA:    39s[  ] 9/81, 2.0 task/s, elapsed: 5s, ETA:    36s[  ] 10/81, 2.2 task/s, elapsed: 5s, ETA:    32s[  ] 11/81, 2.2 task/s, elapsed: 5s, ETA:    32s[  ] 12/81, 2.4 task/s, elapsed: 5s, ETA:    29s[  ] 13/81, 2.5 task/s, elapsed: 5s, ETA:    27s[  ] 14/81, 2.7 task/s, elapsed: 5s, ETA:    25s[  ] 15/81, 2.8 task/s, elapsed: 5s, ETA:    24s[  ] 16/81, 2.9 task/s, elapsed: 5s, ETA:    22s[  ] 17/81, 3.0 task/s, elapsed: 6s, ETA:    21s[  ] 18/81, 3.2 task/s, elapsed: 6s, ETA:    20s[  ] 19/81, 3.2 task/s, elapsed: 6s, ETA:    19s[  ] 20/81, 3.4 task/s, elapsed: 6s, ETA:    18s[  ] 21/81, 3.4 task/s, elapsed: 6s, ETA:    18s[  ] 22/81, 3.6 task/s, elapsed: 6s, ETA:    16s[  ] 23/81, 3.4 task/s, elapsed: 7s, ETA:    17s[  ] 24/81, 3.5 task/s, elapsed: 7s, ETA:    16s[  ] 25/81, 3.6 task/s, elapsed: 7s, ETA:    16s[  ] 26/81, 3.7 task/s, elapsed: 7s, ETA:    15s[  ] 27/81, 3.7 task/s, elapsed: 7s, ETA:    15s[  ] 28/81, 3.9 task/s, elapsed: 7s, ETA:    14s[  ] 29/81, 3.9 task/s, elapsed: 7s, ETA:    13s[  ] 30/81, 4.0 task/s, elapsed: 7s, ETA:    13s[  ] 31/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 32/81, 4.1 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 3.9 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 35/81, 4.1 task/s, elapsed: 9s, ETA:    11s[  ] 36/81, 4.2 task/s, elapsed: 9s, ETA:    11s[  ] 37/81, 4.2 task/s, elapsed: 9s, ETA:    11s[  ] 38/81, 4.3 task/s, elapsed: 9s, ETA:    10s[  ] 39/81, 4.3 task/s, elapsed: 9s, ETA:    10s[  ] 40/81, 4.4 task/s, elapsed: 9s, ETA:     9s[> ] 41/81, 4.4 task/s, elapsed: 9s, ETA:     9s[> ] 42/81, 4.5 task/s, elapsed: 9s, ETA:     9s[> ] 43/81, 4.3 task/s, elapsed: 10s, ETA:     9s[> ] 44/81, 4.4 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.4 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 47/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 48/81, 4.6 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 50/81, 4.7 task/s, elapsed: 11s, ETA:     7s[> ] 51/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 52/81, 4.8 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.6 task/s, elapsed: 12s, ETA:     6s[> ] 54/81, 4.7 task/s, elapsed: 12s, ETA:     6s[> ] 55/81, 4.7 task/s, elapsed: 12s, ETA:     6s[> ] 56/81, 4.7 task/s, elapsed: 12s, ETA:     5s[> ] 57/81, 4.7 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 60/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 62/81, 5.0 task/s, elapsed: 12s, ETA:     4s[> ] 63/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 4.9 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 69/81, 5.1 task/s, elapsed: 14s, ETA:     2s[> ] 70/81, 5.1 task/s, elapsed: 14s, ETA:     2s[> ] 71/81, 5.1 task/s, elapsed: 14s, ETA:     2s[> ] 72/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 73/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 74/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.2 task/s, elapsed: 15s, ETA:     1s[> ] 78/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 79/81, 5.3 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.3 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.3 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.4 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 28.1 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 28.9 task/s, elapsed: 0s, ETA:     3s[  ] 3/81, 29.4 task/s, elapsed: 0s, ETA:     3s[  ] 4/81, 29.8 task/s, elapsed: 0s, ETA:     3s[  ] 5/81, 30.0 task/s, elapsed: 0s, ETA:     3s[  ] 6/81, 30.1 task/s, elapsed: 0s, ETA:     2s[  ] 7/81, 30.2 task/s, elapsed: 0s, ETA:     2s[  ] 8/81, 30.3 task/s, elapsed: 0s, ETA:     2s[  ] 9/81, 30.4 task/s, elapsed: 0s, ETA:     2s[  ] 10/81, 30.6 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 30.7 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 30.8 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 31.0 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 31.1 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 31.1 task/s, elapsed: 0s, ETA:     2s[  ] 16/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 17/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 18/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 19/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 27/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 28/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 29/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 30/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 31/81, 31.0 task/s, elapsed: 1s, ETA:     2s[  ] 32/81, 31.0 task/s, elapsed: 1s, ETA:     2s[  ] 33/81, 31.0 task/s, elapsed: 1s, ETA:     2s[  ] 34/81, 31.0 task/s, elapsed: 1s, ETA:     2s[  ] 35/81, 31.0 task/s, elapsed: 1s, ETA:     1s[  ] 36/81, 30.9 task/s, elapsed: 1s, ETA:     1s[  ] 37/81, 30.9 task/s, elapsed: 1s, ETA:     1s[  ] 38/81, 30.9 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 30.9 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 30.8 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 30.9 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 30.9 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 45/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 46/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 47/81, 31.0 task/s, elapsed: 2s, ETA:     1s[> ] 48/81, 31.0 task/s, elapsed: 2s, ETA:     1s[> ] 49/81, 30.9 task/s, elapsed: 2s, ETA:     1s[> ] 50/81, 30.9 task/s, elapsed: 2s, ETA:     1s[> ] 51/81, 30.9 task/s, elapsed: 2s, ETA:     1s[> ] 52/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 53/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 54/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 55/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 56/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 30.8 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 64/81, 30.7 task/s, elapsed: 2s, ETA:     1s[> ] 65/81, 30.6 task/s, elapsed: 2s, ETA:     1s[> ] 66/81, 30.6 task/s, elapsed: 2s, ETA:     0s[> ] 67/81, 30.5 task/s, elapsed: 2s, ETA:     0s[> ] 68/81, 30.4 task/s, elapsed: 2s, ETA:     0s[> ] 69/81, 30.4 task/s, elapsed: 2s, ETA:     0s[> ] 70/81, 30.4 task/s, elapsed: 2s, ETA:     0s[> ] 71/81, 30.3 task/s, elapsed: 2s, ETA:     0s[> ] 72/81, 30.3 task/s, elapsed: 2s, ETA:     0s[> ] 73/81, 30.2 task/s, elapsed: 2s, ETA:     0s[> ] 74/81, 29.6 task/s, elapsed: 2s, ETA:     0s[> ] 75/81, 25.7 task/s, elapsed: 3s, ETA:     0s[> ] 76/81, 25.7 task/s, elapsed: 3s, ETA:     0s[> ] 77/81, 25.8 task/s, elapsed: 3s, ETA:     0s[> ] 78/81, 25.8 task/s, elapsed: 3s, ETA:     0s[> ] 79/81, 25.9 task/s, elapsed: 3s, ETA:     0s[> ] 80/81, 26.0 task/s, elapsed: 3s, ETA:     0s[>>] 81/81, 26.0 task/s, elapsed: 3s, ETA:     0s
+Results writes to /tmp/tmp022fl6gq/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c5a70940>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 49% 40/81 [00:00<00:00, 392.69it/s] 99% 80/81 [00:00<00:00, 355.57it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0153
+mATE: 0.9658
+mASE: 0.8579
+mAOE: 1.1773
+mAVE: 0.8102
+mAAE: 0.7830
+NDS: 0.0660
+Eval time: 2.8s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.143 	0.926 	0.464 	1.572 	0.387 	0.163 
+truck               	0.002 	1.084 	0.621 	1.322 	0.165 	0.175 
+bus                 	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.008 	0.632 	0.664 	1.702 	0.930 	0.926 
+motorcycle          	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.016 	0.830 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:23:15,089 - mmdet3d - INFO - Epoch(val) [2][41]	object/car_ap_dist_0.5: 0.0000, object/car_ap_dist_1.0: 0.0493, object/car_ap_dist_2.0: 0.2136, object/car_ap_dist_4.0: 0.3108, object/car_trans_err: 0.9265, object/car_scale_err: 0.4644, object/car_orient_err: 1.5716, object/car_vel_err: 0.3874, object/car_attr_err: 0.1632, object/mATE: 0.9658, object/mASE: 0.8579, object/mAOE: 1.1773, object/mAVE: 0.8102, object/mAAE: 0.7830, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0000, object/truck_ap_dist_2.0: 0.0022, object/truck_ap_dist_4.0: 0.0050, object/truck_trans_err: 1.0842, object/truck_scale_err: 0.6207, object/truck_orient_err: 1.3223, object/truck_vel_err: 0.1647, object/truck_attr_err: 0.1748, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0000, object/bus_trans_err: 1.0000, object/bus_scale_err: 1.0000, object/bus_orient_err: 1.0000, object/bus_vel_err: 1.0000, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 1.0000, object/motorcycle_scale_err: 1.0000, object/motorcycle_orient_err: 1.0000, object/motorcycle_vel_err: 1.0000, object/motorcycle_attr_err: 1.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0000, object/pedestrian_ap_dist_1.0: 0.0031, object/pedestrian_ap_dist_2.0: 0.0057, object/pedestrian_ap_dist_4.0: 0.0236, object/pedestrian_trans_err: 0.6316, object/pedestrian_scale_err: 0.6642, object/pedestrian_orient_err: 1.7016, object/pedestrian_vel_err: 0.9296, object/pedestrian_attr_err: 0.9263, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0000, object/traffic_cone_ap_dist_4.0: 0.0000, object/traffic_cone_trans_err: 1.0160, object/traffic_cone_scale_err: 0.8299, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.0660, object/map: 0.0153
+2025-04-23 09:24:01,854 - mmdet3d - INFO - Epoch [3][50/204]	lr: 1.414e-04, eta: 0:11:05, time: 0.934, data_time: 0.104, memory: 16081, loss/object/loss_heatmap: 1.6050, loss/object/layer_-1_loss_cls: 0.6552, loss/object/layer_-1_loss_bbox: 2.3675, stats/object/matched_ious: 0.1416, loss: 4.6276, grad_norm: 7.0200
+2025-04-23 09:24:44,425 - mmdet3d - INFO - Epoch [3][100/204]	lr: 1.501e-04, eta: 0:10:20, time: 0.851, data_time: 0.025, memory: 16081, loss/object/loss_heatmap: 1.6151, loss/object/layer_-1_loss_cls: 0.5913, loss/object/layer_-1_loss_bbox: 2.3083, stats/object/matched_ious: 0.1603, loss: 4.5147, grad_norm: 8.2001
+2025-04-23 09:25:27,080 - mmdet3d - INFO - Epoch [3][150/204]	lr: 1.501e-04, eta: 0:09:36, time: 0.853, data_time: 0.025, memory: 16081, loss/object/loss_heatmap: 1.5195, loss/object/layer_-1_loss_cls: 0.5344, loss/object/layer_-1_loss_bbox: 2.0730, stats/object/matched_ious: 0.1776, loss: 4.1269, grad_norm: 7.3799
+2025-04-23 09:26:09,657 - mmdet3d - INFO - Epoch [3][200/204]	lr: 1.501e-04, eta: 0:08:52, time: 0.852, data_time: 0.026, memory: 16081, loss/object/loss_heatmap: 1.3794, loss/object/layer_-1_loss_cls: 0.4752, loss/object/layer_-1_loss_bbox: 1.9543, stats/object/matched_ious: 0.1926, loss: 3.8089, grad_norm: 6.9327
+2025-04-23 09:26:13,377 - mmdet3d - INFO - Saving checkpoint at 3 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 3s, ETA:   279s[  ] 2/81, 0.6 task/s, elapsed: 3s, ETA:   138s[  ] 3/81, 0.8 task/s, elapsed: 4s, ETA:    96s[  ] 4/81, 1.1 task/s, elapsed: 4s, ETA:    71s[  ] 5/81, 1.3 task/s, elapsed: 4s, ETA:    59s[  ] 6/81, 1.5 task/s, elapsed: 4s, ETA:    48s[  ] 7/81, 1.7 task/s, elapsed: 4s, ETA:    43s[  ] 8/81, 2.0 task/s, elapsed: 4s, ETA:    37s[  ] 9/81, 2.1 task/s, elapsed: 4s, ETA:    35s[  ] 10/81, 2.3 task/s, elapsed: 4s, ETA:    31s[  ] 11/81, 2.4 task/s, elapsed: 5s, ETA:    29s[  ] 12/81, 2.6 task/s, elapsed: 5s, ETA:    26s[  ] 13/81, 2.6 task/s, elapsed: 5s, ETA:    27s[  ] 14/81, 2.8 task/s, elapsed: 5s, ETA:    24s[  ] 15/81, 2.8 task/s, elapsed: 5s, ETA:    23s[  ] 16/81, 3.0 task/s, elapsed: 5s, ETA:    22s[  ] 17/81, 3.1 task/s, elapsed: 6s, ETA:    21s[  ] 18/81, 3.2 task/s, elapsed: 6s, ETA:    19s[  ] 19/81, 3.3 task/s, elapsed: 6s, ETA:    19s[  ] 20/81, 3.5 task/s, elapsed: 6s, ETA:    18s[  ] 21/81, 3.5 task/s, elapsed: 6s, ETA:    17s[  ] 22/81, 3.7 task/s, elapsed: 6s, ETA:    16s[  ] 23/81, 3.4 task/s, elapsed: 7s, ETA:    17s[  ] 24/81, 3.6 task/s, elapsed: 7s, ETA:    16s[  ] 25/81, 3.6 task/s, elapsed: 7s, ETA:    15s[  ] 26/81, 3.8 task/s, elapsed: 7s, ETA:    15s[  ] 27/81, 3.8 task/s, elapsed: 7s, ETA:    14s[  ] 28/81, 3.9 task/s, elapsed: 7s, ETA:    14s[  ] 29/81, 3.9 task/s, elapsed: 7s, ETA:    13s[  ] 30/81, 4.1 task/s, elapsed: 7s, ETA:    13s[  ] 31/81, 4.1 task/s, elapsed: 8s, ETA:    12s[  ] 32/81, 4.2 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.1 task/s, elapsed: 8s, ETA:    11s[  ] 35/81, 4.1 task/s, elapsed: 9s, ETA:    11s[  ] 36/81, 4.2 task/s, elapsed: 9s, ETA:    11s[  ] 37/81, 4.2 task/s, elapsed: 9s, ETA:    10s[  ] 38/81, 4.4 task/s, elapsed: 9s, ETA:    10s[  ] 39/81, 4.4 task/s, elapsed: 9s, ETA:    10s[  ] 40/81, 4.5 task/s, elapsed: 9s, ETA:     9s[> ] 41/81, 4.5 task/s, elapsed: 9s, ETA:     9s[> ] 42/81, 4.6 task/s, elapsed: 9s, ETA:     9s[> ] 43/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 44/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 47/81, 4.6 task/s, elapsed: 10s, ETA:     7s[> ] 48/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 50/81, 4.7 task/s, elapsed: 11s, ETA:     7s[> ] 51/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 52/81, 4.8 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.6 task/s, elapsed: 11s, ETA:     6s[> ] 54/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 55/81, 4.7 task/s, elapsed: 12s, ETA:     6s[> ] 56/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 57/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 60/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 62/81, 5.0 task/s, elapsed: 12s, ETA:     4s[> ] 63/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 4.9 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 69/81, 5.1 task/s, elapsed: 14s, ETA:     2s[> ] 70/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 71/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 72/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 73/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 74/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.4 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.2 task/s, elapsed: 15s, ETA:     1s[> ] 78/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 79/81, 5.3 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.3 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.3 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.4 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 30.3 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 32.8 task/s, elapsed: 0s, ETA:     2s[  ] 3/81, 34.3 task/s, elapsed: 0s, ETA:     2s[  ] 4/81, 35.0 task/s, elapsed: 0s, ETA:     2s[  ] 5/81, 35.3 task/s, elapsed: 0s, ETA:     2s[  ] 6/81, 35.4 task/s, elapsed: 0s, ETA:     2s[  ] 7/81, 35.4 task/s, elapsed: 0s, ETA:     2s[  ] 8/81, 35.4 task/s, elapsed: 0s, ETA:     2s[  ] 9/81, 35.4 task/s, elapsed: 0s, ETA:     2s[  ] 10/81, 35.4 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 35.5 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 35.7 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 35.8 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 36.0 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 36.1 task/s, elapsed: 0s, ETA:     2s[  ] 16/81, 36.2 task/s, elapsed: 0s, ETA:     2s[  ] 17/81, 36.4 task/s, elapsed: 0s, ETA:     2s[  ] 18/81, 36.5 task/s, elapsed: 0s, ETA:     2s[  ] 19/81, 36.5 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 36.6 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 36.6 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 36.7 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 36.8 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 36.8 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 36.9 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 27/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 28/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 29/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 30/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 31/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 32/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 33/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 34/81, 37.0 task/s, elapsed: 1s, ETA:     1s[  ] 35/81, 36.9 task/s, elapsed: 1s, ETA:     1s[  ] 36/81, 36.9 task/s, elapsed: 1s, ETA:     1s[  ] 37/81, 36.9 task/s, elapsed: 1s, ETA:     1s[  ] 38/81, 36.8 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 36.8 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 36.8 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 36.8 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 36.9 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 36.9 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 45/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 46/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 47/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 48/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 49/81, 37.1 task/s, elapsed: 1s, ETA:     1s[> ] 50/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 51/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 52/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 53/81, 37.0 task/s, elapsed: 1s, ETA:     1s[> ] 54/81, 36.9 task/s, elapsed: 1s, ETA:     1s[> ] 55/81, 36.9 task/s, elapsed: 1s, ETA:     1s[> ] 56/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 36.8 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 64/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 65/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 66/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 67/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 68/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 69/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 70/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 71/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 72/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 73/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 74/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 75/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 76/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 77/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 78/81, 36.7 task/s, elapsed: 2s, ETA:     0s[> ] 79/81, 36.6 task/s, elapsed: 2s, ETA:     0s[> ] 80/81, 36.6 task/s, elapsed: 2s, ETA:     0s[>>] 81/81, 36.6 task/s, elapsed: 2s, ETA:     0s
+Results writes to /tmp/tmp7e1enjrq/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c5985dc0>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 49% 40/81 [00:00<00:00, 393.39it/s] 99% 80/81 [00:00<00:00, 353.81it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0000
+mATE: 1.0055
+mASE: 0.9958
+mAOE: 1.0000
+mAVE: 1.0000
+mAAE: 1.0000
+NDS: 0.0004
+Eval time: 0.2s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+truck               	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bus                 	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+motorcycle          	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.055 	0.958 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:26:35,047 - mmdet3d - INFO - Epoch(val) [3][41]	object/car_ap_dist_0.5: 0.0000, object/car_ap_dist_1.0: 0.0000, object/car_ap_dist_2.0: 0.0000, object/car_ap_dist_4.0: 0.0000, object/car_trans_err: 1.0000, object/car_scale_err: 1.0000, object/car_orient_err: 1.0000, object/car_vel_err: 1.0000, object/car_attr_err: 1.0000, object/mATE: 1.0055, object/mASE: 0.9958, object/mAOE: 1.0000, object/mAVE: 1.0000, object/mAAE: 1.0000, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0000, object/truck_ap_dist_2.0: 0.0000, object/truck_ap_dist_4.0: 0.0000, object/truck_trans_err: 1.0000, object/truck_scale_err: 1.0000, object/truck_orient_err: 1.0000, object/truck_vel_err: 1.0000, object/truck_attr_err: 1.0000, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0000, object/bus_trans_err: 1.0000, object/bus_scale_err: 1.0000, object/bus_orient_err: 1.0000, object/bus_vel_err: 1.0000, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 1.0000, object/motorcycle_scale_err: 1.0000, object/motorcycle_orient_err: 1.0000, object/motorcycle_vel_err: 1.0000, object/motorcycle_attr_err: 1.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0000, object/pedestrian_ap_dist_1.0: 0.0000, object/pedestrian_ap_dist_2.0: 0.0000, object/pedestrian_ap_dist_4.0: 0.0000, object/pedestrian_trans_err: 1.0000, object/pedestrian_scale_err: 1.0000, object/pedestrian_orient_err: 1.0000, object/pedestrian_vel_err: 1.0000, object/pedestrian_attr_err: 1.0000, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0000, object/traffic_cone_ap_dist_4.0: 0.0000, object/traffic_cone_trans_err: 1.0552, object/traffic_cone_scale_err: 0.9582, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.0004, object/map: 0.0000
+2025-04-23 09:27:21,957 - mmdet3d - INFO - Epoch [4][50/204]	lr: 1.001e-04, eta: 0:08:06, time: 0.937, data_time: 0.106, memory: 16081, loss/object/loss_heatmap: 1.2487, loss/object/layer_-1_loss_cls: 0.4307, loss/object/layer_-1_loss_bbox: 1.8408, stats/object/matched_ious: 0.2156, loss: 3.5202, grad_norm: 9.7805
+2025-04-23 09:28:04,526 - mmdet3d - INFO - Epoch [4][100/204]	lr: 1.001e-04, eta: 0:07:22, time: 0.851, data_time: 0.027, memory: 16081, loss/object/loss_heatmap: 1.1710, loss/object/layer_-1_loss_cls: 0.4015, loss/object/layer_-1_loss_bbox: 1.7767, stats/object/matched_ious: 0.2260, loss: 3.3492, grad_norm: 6.0489
+2025-04-23 09:28:47,119 - mmdet3d - INFO - Epoch [4][150/204]	lr: 1.001e-04, eta: 0:06:38, time: 0.852, data_time: 0.028, memory: 16081, loss/object/loss_heatmap: 1.1560, loss/object/layer_-1_loss_cls: 0.4016, loss/object/layer_-1_loss_bbox: 1.6919, stats/object/matched_ious: 0.2289, loss: 3.2495, grad_norm: 11.1054
+2025-04-23 09:29:29,940 - mmdet3d - INFO - Epoch [4][200/204]	lr: 1.001e-04, eta: 0:05:55, time: 0.856, data_time: 0.026, memory: 16110, loss/object/loss_heatmap: 1.1342, loss/object/layer_-1_loss_cls: 0.3878, loss/object/layer_-1_loss_bbox: 1.6228, stats/object/matched_ious: 0.2323, loss: 3.1447, grad_norm: 6.7763
+2025-04-23 09:29:33,432 - mmdet3d - INFO - Saving checkpoint at 4 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 3s, ETA:   257s[  ] 2/81, 0.6 task/s, elapsed: 3s, ETA:   127s[  ] 3/81, 0.9 task/s, elapsed: 3s, ETA:    89s[  ] 4/81, 1.2 task/s, elapsed: 3s, ETA:    66s[  ] 5/81, 1.4 task/s, elapsed: 4s, ETA:    55s[  ] 6/81, 1.7 task/s, elapsed: 4s, ETA:    45s[  ] 7/81, 1.8 task/s, elapsed: 4s, ETA:    40s[  ] 8/81, 2.1 task/s, elapsed: 4s, ETA:    35s[  ] 9/81, 2.0 task/s, elapsed: 5s, ETA:    36s[  ] 10/81, 2.2 task/s, elapsed: 5s, ETA:    32s[  ] 11/81, 2.3 task/s, elapsed: 5s, ETA:    30s[  ] 12/81, 2.5 task/s, elapsed: 5s, ETA:    27s[  ] 13/81, 2.6 task/s, elapsed: 5s, ETA:    26s[  ] 14/81, 2.8 task/s, elapsed: 5s, ETA:    24s[  ] 15/81, 2.9 task/s, elapsed: 5s, ETA:    23s[  ] 16/81, 3.1 task/s, elapsed: 5s, ETA:    21s[  ] 17/81, 3.1 task/s, elapsed: 5s, ETA:    20s[  ] 18/81, 3.3 task/s, elapsed: 5s, ETA:    19s[  ] 19/81, 3.1 task/s, elapsed: 6s, ETA:    20s[  ] 20/81, 3.3 task/s, elapsed: 6s, ETA:    19s[  ] 21/81, 3.3 task/s, elapsed: 6s, ETA:    18s[  ] 22/81, 3.5 task/s, elapsed: 6s, ETA:    17s[  ] 23/81, 3.5 task/s, elapsed: 7s, ETA:    17s[  ] 24/81, 3.7 task/s, elapsed: 7s, ETA:    16s[  ] 25/81, 3.7 task/s, elapsed: 7s, ETA:    15s[  ] 26/81, 3.8 task/s, elapsed: 7s, ETA:    14s[  ] 27/81, 3.9 task/s, elapsed: 7s, ETA:    14s[  ] 28/81, 4.0 task/s, elapsed: 7s, ETA:    13s[  ] 29/81, 3.8 task/s, elapsed: 8s, ETA:    14s[  ] 30/81, 3.9 task/s, elapsed: 8s, ETA:    13s[  ] 31/81, 3.9 task/s, elapsed: 8s, ETA:    13s[  ] 32/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 35/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 36/81, 4.3 task/s, elapsed: 8s, ETA:    10s[  ] 37/81, 4.3 task/s, elapsed: 9s, ETA:    10s[  ] 38/81, 4.4 task/s, elapsed: 9s, ETA:    10s[  ] 39/81, 4.2 task/s, elapsed: 9s, ETA:    10s[  ] 40/81, 4.3 task/s, elapsed: 9s, ETA:    10s[> ] 41/81, 4.3 task/s, elapsed: 10s, ETA:     9s[> ] 42/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 43/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 44/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 47/81, 4.6 task/s, elapsed: 10s, ETA:     7s[> ] 48/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.5 task/s, elapsed: 11s, ETA:     7s[> ] 50/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 51/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 52/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 54/81, 4.8 task/s, elapsed: 11s, ETA:     6s[> ] 55/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 56/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 57/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 60/81, 5.0 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 4.9 task/s, elapsed: 13s, ETA:     4s[> ] 62/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 63/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.2 task/s, elapsed: 13s, ETA:     3s[> ] 69/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 70/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 71/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 72/81, 5.3 task/s, elapsed: 14s, ETA:     2s[> ] 73/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 74/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 78/81, 5.4 task/s, elapsed: 15s, ETA:     1s[> ] 79/81, 5.4 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.5 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 26.0 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 27.2 task/s, elapsed: 0s, ETA:     3s[  ] 3/81, 28.9 task/s, elapsed: 0s, ETA:     3s[  ] 4/81, 29.7 task/s, elapsed: 0s, ETA:     3s[  ] 5/81, 30.2 task/s, elapsed: 0s, ETA:     3s[  ] 6/81, 30.5 task/s, elapsed: 0s, ETA:     2s[  ] 7/81, 30.6 task/s, elapsed: 0s, ETA:     2s[  ] 8/81, 30.7 task/s, elapsed: 0s, ETA:     2s[  ] 9/81, 30.7 task/s, elapsed: 0s, ETA:     2s[  ] 10/81, 30.9 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 31.0 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 31.2 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 31.2 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 31.2 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 31.2 task/s, elapsed: 0s, ETA:     2s[  ] 16/81, 31.1 task/s, elapsed: 1s, ETA:     2s[  ] 17/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 18/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 19/81, 31.2 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 27/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 28/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 29/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 30/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 31/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 32/81, 31.4 task/s, elapsed: 1s, ETA:     2s[  ] 33/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 34/81, 31.3 task/s, elapsed: 1s, ETA:     2s[  ] 35/81, 31.3 task/s, elapsed: 1s, ETA:     1s[  ] 36/81, 31.2 task/s, elapsed: 1s, ETA:     1s[  ] 37/81, 31.2 task/s, elapsed: 1s, ETA:     1s[  ] 38/81, 31.1 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 31.1 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 31.1 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 31.1 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 31.1 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 31.0 task/s, elapsed: 1s, ETA:     1s[> ] 45/81, 31.1 task/s, elapsed: 1s, ETA:     1s[> ] 46/81, 31.1 task/s, elapsed: 1s, ETA:     1s[> ] 47/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 48/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 49/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 50/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 51/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 52/81, 31.0 task/s, elapsed: 2s, ETA:     1s[> ] 53/81, 31.0 task/s, elapsed: 2s, ETA:     1s[> ] 54/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 55/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 56/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 31.1 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 31.2 task/s, elapsed: 2s, ETA:     1s[> ] 64/81, 31.2 task/s, elapsed: 2s, ETA:     1s[> ] 65/81, 31.2 task/s, elapsed: 2s, ETA:     1s[> ] 66/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 67/81, 31.1 task/s, elapsed: 2s, ETA:     0s[> ] 68/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 69/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 70/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 71/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 72/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 73/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 74/81, 31.1 task/s, elapsed: 2s, ETA:     0s[> ] 75/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 76/81, 31.2 task/s, elapsed: 2s, ETA:     0s[> ] 77/81, 31.1 task/s, elapsed: 2s, ETA:     0s[> ] 78/81, 30.9 task/s, elapsed: 3s, ETA:     0s[> ] 79/81, 30.7 task/s, elapsed: 3s, ETA:     0s[> ] 80/81, 30.6 task/s, elapsed: 3s, ETA:     0s[>>] 81/81, 30.4 task/s, elapsed: 3s, ETA:     0s
+Results writes to /tmp/tmpbkr2052z/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c55ae400>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 48% 39/81 [00:00<00:00, 387.30it/s] 96% 78/81 [00:00<00:00, 349.69it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0278
+mATE: 0.8811
+mASE: 0.7108
+mAOE: 1.2874
+mAVE: 0.6730
+mAAE: 0.6237
+NDS: 0.1250
+Eval time: 3.8s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.205 	0.726 	0.263 	1.329 	0.402 	0.170 
+truck               	0.000 	0.461 	0.383 	1.667 	0.113 	0.000 
+bus                 	0.021 	1.000 	1.000 	1.000 	1.000 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.051 	0.537 	0.371 	1.572 	0.787 	0.820 
+motorcycle          	0.000 	0.597 	0.655 	2.019 	0.083 	0.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.490 	0.437 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:29:59,606 - mmdet3d - INFO - Epoch(val) [4][41]	object/car_ap_dist_0.5: 0.0063, object/car_ap_dist_1.0: 0.1287, object/car_ap_dist_2.0: 0.3089, object/car_ap_dist_4.0: 0.3760, object/car_trans_err: 0.7262, object/car_scale_err: 0.2633, object/car_orient_err: 1.3286, object/car_vel_err: 0.4017, object/car_attr_err: 0.1699, object/mATE: 0.8811, object/mASE: 0.7108, object/mAOE: 1.2874, object/mAVE: 0.6730, object/mAAE: 0.6237, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0003, object/truck_ap_dist_2.0: 0.0007, object/truck_ap_dist_4.0: 0.0007, object/truck_trans_err: 0.4611, object/truck_scale_err: 0.3826, object/truck_orient_err: 1.6669, object/truck_vel_err: 0.1126, object/truck_attr_err: 0.0000, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0851, object/bus_trans_err: 1.0000, object/bus_scale_err: 1.0000, object/bus_orient_err: 1.0000, object/bus_vel_err: 1.0000, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 0.5966, object/motorcycle_scale_err: 0.6547, object/motorcycle_orient_err: 2.0192, object/motorcycle_vel_err: 0.0826, object/motorcycle_attr_err: 0.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0208, object/pedestrian_ap_dist_1.0: 0.0377, object/pedestrian_ap_dist_2.0: 0.0527, object/pedestrian_ap_dist_4.0: 0.0908, object/pedestrian_trans_err: 0.5373, object/pedestrian_scale_err: 0.3710, object/pedestrian_orient_err: 1.5719, object/pedestrian_vel_err: 0.7875, object/pedestrian_attr_err: 0.8197, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0008, object/traffic_cone_ap_dist_4.0: 0.0008, object/traffic_cone_trans_err: 1.4900, object/traffic_cone_scale_err: 0.4368, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.1250, object/map: 0.0278
+2025-04-23 09:30:46,212 - mmdet3d - INFO - Epoch [5][50/204]	lr: 5.015e-05, eta: 0:05:08, time: 0.931, data_time: 0.108, memory: 16110, loss/object/loss_heatmap: 1.0186, loss/object/layer_-1_loss_cls: 0.3608, loss/object/layer_-1_loss_bbox: 1.5491, stats/object/matched_ious: 0.2598, loss: 2.9285, grad_norm: 6.8629
+2025-04-23 09:31:28,791 - mmdet3d - INFO - Epoch [5][100/204]	lr: 5.015e-05, eta: 0:04:25, time: 0.852, data_time: 0.027, memory: 16110, loss/object/loss_heatmap: 0.9842, loss/object/layer_-1_loss_cls: 0.3458, loss/object/layer_-1_loss_bbox: 1.5349, stats/object/matched_ious: 0.2642, loss: 2.8649, grad_norm: 7.4142
+2025-04-23 09:32:11,271 - mmdet3d - INFO - Epoch [5][150/204]	lr: 5.015e-05, eta: 0:03:42, time: 0.850, data_time: 0.028, memory: 16110, loss/object/loss_heatmap: 0.9601, loss/object/layer_-1_loss_cls: 0.3306, loss/object/layer_-1_loss_bbox: 1.5096, stats/object/matched_ious: 0.2582, loss: 2.8003, grad_norm: 5.8136
+2025-04-23 09:32:53,954 - mmdet3d - INFO - Epoch [5][200/204]	lr: 5.015e-05, eta: 0:02:59, time: 0.854, data_time: 0.027, memory: 16110, loss/object/loss_heatmap: 0.9627, loss/object/layer_-1_loss_cls: 0.3315, loss/object/layer_-1_loss_bbox: 1.4661, stats/object/matched_ious: 0.2681, loss: 2.7604, grad_norm: 6.1584
+2025-04-23 09:32:57,623 - mmdet3d - INFO - Saving checkpoint at 5 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 3s, ETA:   259s[  ] 2/81, 0.6 task/s, elapsed: 3s, ETA:   128s[  ] 3/81, 0.9 task/s, elapsed: 3s, ETA:    89s[  ] 4/81, 1.2 task/s, elapsed: 3s, ETA:    66s[  ] 5/81, 1.4 task/s, elapsed: 4s, ETA:    55s[  ] 6/81, 1.7 task/s, elapsed: 4s, ETA:    45s[  ] 7/81, 1.8 task/s, elapsed: 4s, ETA:    41s[  ] 8/81, 2.1 task/s, elapsed: 4s, ETA:    35s[  ] 9/81, 2.0 task/s, elapsed: 5s, ETA:    36s[  ] 10/81, 2.2 task/s, elapsed: 5s, ETA:    32s[  ] 11/81, 2.3 task/s, elapsed: 5s, ETA:    30s[  ] 12/81, 2.5 task/s, elapsed: 5s, ETA:    27s[  ] 13/81, 2.6 task/s, elapsed: 5s, ETA:    26s[  ] 14/81, 2.8 task/s, elapsed: 5s, ETA:    24s[  ] 15/81, 2.9 task/s, elapsed: 5s, ETA:    23s[  ] 16/81, 3.1 task/s, elapsed: 5s, ETA:    21s[  ] 17/81, 3.1 task/s, elapsed: 5s, ETA:    20s[  ] 18/81, 3.3 task/s, elapsed: 5s, ETA:    19s[  ] 19/81, 3.1 task/s, elapsed: 6s, ETA:    20s[  ] 20/81, 3.3 task/s, elapsed: 6s, ETA:    19s[  ] 21/81, 3.3 task/s, elapsed: 6s, ETA:    18s[  ] 22/81, 3.5 task/s, elapsed: 6s, ETA:    17s[  ] 23/81, 3.5 task/s, elapsed: 7s, ETA:    17s[  ] 24/81, 3.7 task/s, elapsed: 7s, ETA:    16s[  ] 25/81, 3.7 task/s, elapsed: 7s, ETA:    15s[  ] 26/81, 3.8 task/s, elapsed: 7s, ETA:    14s[  ] 27/81, 3.8 task/s, elapsed: 7s, ETA:    14s[  ] 28/81, 4.0 task/s, elapsed: 7s, ETA:    13s[  ] 29/81, 3.8 task/s, elapsed: 8s, ETA:    14s[  ] 30/81, 3.9 task/s, elapsed: 8s, ETA:    13s[  ] 31/81, 3.9 task/s, elapsed: 8s, ETA:    13s[  ] 32/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 4.0 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 35/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 36/81, 4.3 task/s, elapsed: 8s, ETA:    10s[  ] 37/81, 4.3 task/s, elapsed: 9s, ETA:    10s[  ] 38/81, 4.4 task/s, elapsed: 9s, ETA:    10s[  ] 39/81, 4.2 task/s, elapsed: 9s, ETA:    10s[  ] 40/81, 4.3 task/s, elapsed: 9s, ETA:    10s[> ] 41/81, 4.3 task/s, elapsed: 10s, ETA:     9s[> ] 42/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 43/81, 4.4 task/s, elapsed: 10s, ETA:     9s[> ] 44/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 47/81, 4.6 task/s, elapsed: 10s, ETA:     7s[> ] 48/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.5 task/s, elapsed: 11s, ETA:     7s[> ] 50/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 51/81, 4.6 task/s, elapsed: 11s, ETA:     7s[> ] 52/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 54/81, 4.8 task/s, elapsed: 11s, ETA:     6s[> ] 55/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 56/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 57/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 4.8 task/s, elapsed: 12s, ETA:     5s[> ] 60/81, 4.9 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 4.9 task/s, elapsed: 13s, ETA:     4s[> ] 62/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 63/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 5.0 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.2 task/s, elapsed: 13s, ETA:     3s[> ] 69/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 70/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 71/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 72/81, 5.3 task/s, elapsed: 14s, ETA:     2s[> ] 73/81, 5.2 task/s, elapsed: 14s, ETA:     2s[> ] 74/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.2 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.3 task/s, elapsed: 15s, ETA:     1s[> ] 78/81, 5.4 task/s, elapsed: 15s, ETA:     1s[> ] 79/81, 5.4 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.4 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.5 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 24.7 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 28.8 task/s, elapsed: 0s, ETA:     3s[  ] 3/81, 30.9 task/s, elapsed: 0s, ETA:     3s[  ] 4/81, 31.8 task/s, elapsed: 0s, ETA:     2s[  ] 5/81, 32.4 task/s, elapsed: 0s, ETA:     2s[  ] 6/81, 32.8 task/s, elapsed: 0s, ETA:     2s[  ] 7/81, 32.6 task/s, elapsed: 0s, ETA:     2s[  ] 8/81, 32.6 task/s, elapsed: 0s, ETA:     2s[  ] 9/81, 32.7 task/s, elapsed: 0s, ETA:     2s[  ] 10/81, 32.8 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 33.0 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 33.1 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 33.1 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 33.1 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 33.0 task/s, elapsed: 0s, ETA:     2s[  ] 16/81, 33.0 task/s, elapsed: 0s, ETA:     2s[  ] 17/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 18/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 19/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 33.0 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 33.0 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 27/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 28/81, 32.9 task/s, elapsed: 1s, ETA:     2s[  ] 29/81, 32.8 task/s, elapsed: 1s, ETA:     2s[  ] 30/81, 32.8 task/s, elapsed: 1s, ETA:     2s[  ] 31/81, 32.7 task/s, elapsed: 1s, ETA:     2s[  ] 32/81, 32.7 task/s, elapsed: 1s, ETA:     1s[  ] 33/81, 32.6 task/s, elapsed: 1s, ETA:     1s[  ] 34/81, 32.6 task/s, elapsed: 1s, ETA:     1s[  ] 35/81, 32.5 task/s, elapsed: 1s, ETA:     1s[  ] 36/81, 32.4 task/s, elapsed: 1s, ETA:     1s[  ] 37/81, 32.4 task/s, elapsed: 1s, ETA:     1s[  ] 38/81, 32.3 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 32.3 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 32.2 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 32.2 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 32.3 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 32.3 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 32.4 task/s, elapsed: 1s, ETA:     1s[> ] 45/81, 32.4 task/s, elapsed: 1s, ETA:     1s[> ] 46/81, 32.5 task/s, elapsed: 1s, ETA:     1s[> ] 47/81, 32.5 task/s, elapsed: 1s, ETA:     1s[> ] 48/81, 32.5 task/s, elapsed: 1s, ETA:     1s[> ] 49/81, 32.5 task/s, elapsed: 2s, ETA:     1s[> ] 50/81, 32.5 task/s, elapsed: 2s, ETA:     1s[> ] 51/81, 32.5 task/s, elapsed: 2s, ETA:     1s[> ] 52/81, 32.4 task/s, elapsed: 2s, ETA:     1s[> ] 53/81, 32.4 task/s, elapsed: 2s, ETA:     1s[> ] 54/81, 32.4 task/s, elapsed: 2s, ETA:     1s[> ] 55/81, 32.4 task/s, elapsed: 2s, ETA:     1s[> ] 56/81, 32.4 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 32.5 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 32.5 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 27.8 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 27.8 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 27.8 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 27.9 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 27.9 task/s, elapsed: 2s, ETA:     1s[> ] 64/81, 28.0 task/s, elapsed: 2s, ETA:     1s[> ] 65/81, 28.1 task/s, elapsed: 2s, ETA:     1s[> ] 66/81, 28.1 task/s, elapsed: 2s, ETA:     1s[> ] 67/81, 28.2 task/s, elapsed: 2s, ETA:     0s[> ] 68/81, 28.2 task/s, elapsed: 2s, ETA:     0s[> ] 69/81, 28.1 task/s, elapsed: 2s, ETA:     0s[> ] 70/81, 27.8 task/s, elapsed: 3s, ETA:     0s[> ] 71/81, 27.3 task/s, elapsed: 3s, ETA:     0s[> ] 72/81, 27.4 task/s, elapsed: 3s, ETA:     0s[> ] 73/81, 27.5 task/s, elapsed: 3s, ETA:     0s[> ] 74/81, 27.5 task/s, elapsed: 3s, ETA:     0s[> ] 75/81, 27.6 task/s, elapsed: 3s, ETA:     0s[> ] 76/81, 27.7 task/s, elapsed: 3s, ETA:     0s[> ] 77/81, 27.8 task/s, elapsed: 3s, ETA:     0s[> ] 78/81, 27.8 task/s, elapsed: 3s, ETA:     0s[> ] 79/81, 27.9 task/s, elapsed: 3s, ETA:     0s[> ] 80/81, 28.0 task/s, elapsed: 3s, ETA:     0s[>>] 81/81, 28.1 task/s, elapsed: 3s, ETA:     0s
+Results writes to /tmp/tmpjmgi_u9l/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c33f57f0>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 48% 39/81 [00:00<00:00, 384.32it/s] 96% 78/81 [00:00<00:00, 347.41it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0235
+mATE: 0.8772
+mASE: 0.7566
+mAOE: 1.2711
+mAVE: 0.6583
+mAAE: 0.6204
+NDS: 0.1205
+Eval time: 3.3s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.205 	0.776 	0.273 	1.429 	0.309 	0.166 
+truck               	0.001 	0.685 	0.415 	1.545 	0.093 	0.000 
+bus                 	0.002 	1.000 	1.000 	1.000 	1.000 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.026 	0.518 	0.481 	1.453 	0.755 	0.797 
+motorcycle          	0.000 	0.504 	0.673 	2.013 	0.109 	0.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.289 	0.724 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:33:23,184 - mmdet3d - INFO - Epoch(val) [5][41]	object/car_ap_dist_0.5: 0.0065, object/car_ap_dist_1.0: 0.1074, object/car_ap_dist_2.0: 0.3120, object/car_ap_dist_4.0: 0.3957, object/car_trans_err: 0.7759, object/car_scale_err: 0.2728, object/car_orient_err: 1.4287, object/car_vel_err: 0.3086, object/car_attr_err: 0.1658, object/mATE: 0.8772, object/mASE: 0.7566, object/mAOE: 1.2711, object/mAVE: 0.6583, object/mAAE: 0.6204, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0020, object/truck_ap_dist_2.0: 0.0020, object/truck_ap_dist_4.0: 0.0020, object/truck_trans_err: 0.6846, object/truck_scale_err: 0.4149, object/truck_orient_err: 1.5449, object/truck_vel_err: 0.0931, object/truck_attr_err: 0.0000, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0066, object/bus_trans_err: 1.0000, object/bus_scale_err: 1.0000, object/bus_orient_err: 1.0000, object/bus_vel_err: 1.0000, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 0.5042, object/motorcycle_scale_err: 0.6730, object/motorcycle_orient_err: 2.0132, object/motorcycle_vel_err: 0.1093, object/motorcycle_attr_err: 0.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0075, object/pedestrian_ap_dist_1.0: 0.0179, object/pedestrian_ap_dist_2.0: 0.0265, object/pedestrian_ap_dist_4.0: 0.0535, object/pedestrian_trans_err: 0.5181, object/pedestrian_scale_err: 0.4813, object/pedestrian_orient_err: 1.4532, object/pedestrian_vel_err: 0.7552, object/pedestrian_attr_err: 0.7973, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0000, object/traffic_cone_ap_dist_4.0: 0.0000, object/traffic_cone_trans_err: 1.2893, object/traffic_cone_scale_err: 0.7240, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.1205, object/map: 0.0235
+2025-04-23 09:34:10,107 - mmdet3d - INFO - Epoch [6][50/204]	lr: 1.358e-05, eta: 0:02:12, time: 0.938, data_time: 0.106, memory: 16110, loss/object/loss_heatmap: 0.8809, loss/object/layer_-1_loss_cls: 0.3116, loss/object/layer_-1_loss_bbox: 1.3863, stats/object/matched_ious: 0.2808, loss: 2.5788, grad_norm: 5.3436
+2025-04-23 09:34:52,653 - mmdet3d - INFO - Epoch [6][100/204]	lr: 1.358e-05, eta: 0:01:29, time: 0.851, data_time: 0.027, memory: 16110, loss/object/loss_heatmap: 0.8651, loss/object/layer_-1_loss_cls: 0.3109, loss/object/layer_-1_loss_bbox: 1.3497, stats/object/matched_ious: 0.2837, loss: 2.5257, grad_norm: 5.3736
+2025-04-23 09:35:35,375 - mmdet3d - INFO - Epoch [6][150/204]	lr: 1.358e-05, eta: 0:00:46, time: 0.854, data_time: 0.026, memory: 16110, loss/object/loss_heatmap: 0.8639, loss/object/layer_-1_loss_cls: 0.3182, loss/object/layer_-1_loss_bbox: 1.3698, stats/object/matched_ious: 0.2802, loss: 2.5518, grad_norm: 5.8343
+2025-04-23 09:36:18,055 - mmdet3d - INFO - Epoch [6][200/204]	lr: 1.358e-05, eta: 0:00:03, time: 0.854, data_time: 0.028, memory: 16110, loss/object/loss_heatmap: 0.8567, loss/object/layer_-1_loss_cls: 0.3183, loss/object/layer_-1_loss_bbox: 1.3213, stats/object/matched_ious: 0.2877, loss: 2.4963, grad_norm: 6.0607
+2025-04-23 09:36:21,452 - mmdet3d - INFO - Saving checkpoint at 6 epochs
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 0.3 task/s, elapsed: 3s, ETA:   258s[  ] 2/81, 0.6 task/s, elapsed: 3s, ETA:   127s[  ] 3/81, 0.9 task/s, elapsed: 3s, ETA:    89s[  ] 4/81, 1.2 task/s, elapsed: 3s, ETA:    66s[  ] 5/81, 1.4 task/s, elapsed: 4s, ETA:    55s[  ] 6/81, 1.7 task/s, elapsed: 4s, ETA:    45s[  ] 7/81, 1.8 task/s, elapsed: 4s, ETA:    40s[  ] 8/81, 2.1 task/s, elapsed: 4s, ETA:    35s[  ] 9/81, 2.2 task/s, elapsed: 4s, ETA:    32s[  ] 10/81, 2.5 task/s, elapsed: 4s, ETA:    29s[  ] 11/81, 2.4 task/s, elapsed: 5s, ETA:    29s[  ] 12/81, 2.6 task/s, elapsed: 5s, ETA:    26s[  ] 13/81, 2.7 task/s, elapsed: 5s, ETA:    25s[  ] 14/81, 2.9 task/s, elapsed: 5s, ETA:    23s[  ] 15/81, 3.0 task/s, elapsed: 5s, ETA:    22s[  ] 16/81, 3.2 task/s, elapsed: 5s, ETA:    21s[  ] 17/81, 3.2 task/s, elapsed: 5s, ETA:    20s[  ] 18/81, 3.4 task/s, elapsed: 5s, ETA:    18s[  ] 19/81, 3.5 task/s, elapsed: 6s, ETA:    18s[  ] 20/81, 3.6 task/s, elapsed: 6s, ETA:    17s[  ] 21/81, 3.4 task/s, elapsed: 6s, ETA:    18s[  ] 22/81, 3.6 task/s, elapsed: 6s, ETA:    17s[  ] 23/81, 3.6 task/s, elapsed: 6s, ETA:    16s[  ] 24/81, 3.7 task/s, elapsed: 6s, ETA:    15s[  ] 25/81, 3.8 task/s, elapsed: 7s, ETA:    15s[  ] 26/81, 3.9 task/s, elapsed: 7s, ETA:    14s[  ] 27/81, 3.9 task/s, elapsed: 7s, ETA:    14s[  ] 28/81, 4.1 task/s, elapsed: 7s, ETA:    13s[  ] 29/81, 4.1 task/s, elapsed: 7s, ETA:    13s[  ] 30/81, 4.2 task/s, elapsed: 7s, ETA:    12s[  ] 31/81, 4.0 task/s, elapsed: 8s, ETA:    13s[  ] 32/81, 4.1 task/s, elapsed: 8s, ETA:    12s[  ] 33/81, 4.1 task/s, elapsed: 8s, ETA:    12s[  ] 34/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 35/81, 4.2 task/s, elapsed: 8s, ETA:    11s[  ] 36/81, 4.4 task/s, elapsed: 8s, ETA:    10s[  ] 37/81, 4.4 task/s, elapsed: 8s, ETA:    10s[  ] 38/81, 4.5 task/s, elapsed: 8s, ETA:    10s[  ] 39/81, 4.5 task/s, elapsed: 9s, ETA:     9s[  ] 40/81, 4.6 task/s, elapsed: 9s, ETA:     9s[> ] 41/81, 4.4 task/s, elapsed: 9s, ETA:     9s[> ] 42/81, 4.5 task/s, elapsed: 9s, ETA:     9s[> ] 43/81, 4.5 task/s, elapsed: 10s, ETA:     8s[> ] 44/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 45/81, 4.6 task/s, elapsed: 10s, ETA:     8s[> ] 46/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 47/81, 4.7 task/s, elapsed: 10s, ETA:     7s[> ] 48/81, 4.8 task/s, elapsed: 10s, ETA:     7s[> ] 49/81, 4.8 task/s, elapsed: 10s, ETA:     7s[> ] 50/81, 4.9 task/s, elapsed: 10s, ETA:     6s[> ] 51/81, 4.6 task/s, elapsed: 11s, ETA:     6s[> ] 52/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 53/81, 4.7 task/s, elapsed: 11s, ETA:     6s[> ] 54/81, 4.8 task/s, elapsed: 11s, ETA:     6s[> ] 55/81, 4.8 task/s, elapsed: 11s, ETA:     5s[> ] 56/81, 4.9 task/s, elapsed: 11s, ETA:     5s[> ] 57/81, 4.9 task/s, elapsed: 12s, ETA:     5s[> ] 58/81, 5.0 task/s, elapsed: 12s, ETA:     5s[> ] 59/81, 5.0 task/s, elapsed: 12s, ETA:     4s[> ] 60/81, 5.1 task/s, elapsed: 12s, ETA:     4s[> ] 61/81, 5.1 task/s, elapsed: 12s, ETA:     4s[> ] 62/81, 5.1 task/s, elapsed: 12s, ETA:     4s[> ] 63/81, 5.0 task/s, elapsed: 13s, ETA:     4s[> ] 64/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 65/81, 5.1 task/s, elapsed: 13s, ETA:     3s[> ] 66/81, 5.2 task/s, elapsed: 13s, ETA:     3s[> ] 67/81, 5.2 task/s, elapsed: 13s, ETA:     3s[> ] 68/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 69/81, 5.2 task/s, elapsed: 13s, ETA:     2s[> ] 70/81, 5.3 task/s, elapsed: 13s, ETA:     2s[> ] 71/81, 5.3 task/s, elapsed: 13s, ETA:     2s[> ] 72/81, 5.4 task/s, elapsed: 13s, ETA:     2s[> ] 73/81, 5.4 task/s, elapsed: 14s, ETA:     1s[> ] 74/81, 5.4 task/s, elapsed: 14s, ETA:     1s[> ] 75/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 76/81, 5.4 task/s, elapsed: 14s, ETA:     1s[> ] 77/81, 5.3 task/s, elapsed: 14s, ETA:     1s[> ] 78/81, 5.4 task/s, elapsed: 14s, ETA:     1s[> ] 79/81, 5.4 task/s, elapsed: 15s, ETA:     0s[> ] 80/81, 5.5 task/s, elapsed: 15s, ETA:     0s[>>] 81/81, 5.5 task/s, elapsed: 15s, ETA:     0s[>>] 82/81, 5.5 task/s, elapsed: 15s, ETA:     0s
+
+Start to convert detection format...
+[                                                  ] 0/81, elapsed: 0s, ETA:[  ] 1/81, 27.6 task/s, elapsed: 0s, ETA:     3s[  ] 2/81, 29.0 task/s, elapsed: 0s, ETA:     3s[  ] 3/81, 31.4 task/s, elapsed: 0s, ETA:     2s[  ] 4/81, 32.6 task/s, elapsed: 0s, ETA:     2s[  ] 5/81, 33.3 task/s, elapsed: 0s, ETA:     2s[  ] 6/81, 33.8 task/s, elapsed: 0s, ETA:     2s[  ] 7/81, 33.6 task/s, elapsed: 0s, ETA:     2s[  ] 8/81, 33.6 task/s, elapsed: 0s, ETA:     2s[  ] 9/81, 33.7 task/s, elapsed: 0s, ETA:     2s[  ] 10/81, 33.9 task/s, elapsed: 0s, ETA:     2s[  ] 11/81, 34.1 task/s, elapsed: 0s, ETA:     2s[  ] 12/81, 34.3 task/s, elapsed: 0s, ETA:     2s[  ] 13/81, 34.3 task/s, elapsed: 0s, ETA:     2s[  ] 14/81, 34.3 task/s, elapsed: 0s, ETA:     2s[  ] 15/81, 34.2 task/s, elapsed: 0s, ETA:     2s[  ] 16/81, 34.1 task/s, elapsed: 0s, ETA:     2s[  ] 17/81, 34.2 task/s, elapsed: 0s, ETA:     2s[  ] 18/81, 34.2 task/s, elapsed: 1s, ETA:     2s[  ] 19/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 20/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 21/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 22/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 23/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 24/81, 34.0 task/s, elapsed: 1s, ETA:     2s[  ] 25/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 26/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 27/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 28/81, 34.1 task/s, elapsed: 1s, ETA:     2s[  ] 29/81, 34.0 task/s, elapsed: 1s, ETA:     2s[  ] 30/81, 33.9 task/s, elapsed: 1s, ETA:     2s[  ] 31/81, 33.9 task/s, elapsed: 1s, ETA:     1s[  ] 32/81, 33.8 task/s, elapsed: 1s, ETA:     1s[  ] 33/81, 33.8 task/s, elapsed: 1s, ETA:     1s[  ] 34/81, 33.7 task/s, elapsed: 1s, ETA:     1s[  ] 35/81, 33.6 task/s, elapsed: 1s, ETA:     1s[  ] 36/81, 33.5 task/s, elapsed: 1s, ETA:     1s[  ] 37/81, 33.4 task/s, elapsed: 1s, ETA:     1s[  ] 38/81, 33.4 task/s, elapsed: 1s, ETA:     1s[  ] 39/81, 33.3 task/s, elapsed: 1s, ETA:     1s[  ] 40/81, 33.2 task/s, elapsed: 1s, ETA:     1s[> ] 41/81, 33.1 task/s, elapsed: 1s, ETA:     1s[> ] 42/81, 33.2 task/s, elapsed: 1s, ETA:     1s[> ] 43/81, 33.2 task/s, elapsed: 1s, ETA:     1s[> ] 44/81, 33.3 task/s, elapsed: 1s, ETA:     1s[> ] 45/81, 33.3 task/s, elapsed: 1s, ETA:     1s[> ] 46/81, 33.4 task/s, elapsed: 1s, ETA:     1s[> ] 47/81, 33.4 task/s, elapsed: 1s, ETA:     1s[> ] 48/81, 33.4 task/s, elapsed: 1s, ETA:     1s[> ] 49/81, 33.4 task/s, elapsed: 1s, ETA:     1s[> ] 50/81, 33.3 task/s, elapsed: 2s, ETA:     1s[> ] 51/81, 33.3 task/s, elapsed: 2s, ETA:     1s[> ] 52/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 53/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 54/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 55/81, 33.1 task/s, elapsed: 2s, ETA:     1s[> ] 56/81, 33.1 task/s, elapsed: 2s, ETA:     1s[> ] 57/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 58/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 59/81, 33.1 task/s, elapsed: 2s, ETA:     1s[> ] 60/81, 33.1 task/s, elapsed: 2s, ETA:     1s[> ] 61/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 62/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 63/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 64/81, 33.2 task/s, elapsed: 2s, ETA:     1s[> ] 65/81, 33.2 task/s, elapsed: 2s, ETA:     0s[> ] 66/81, 33.2 task/s, elapsed: 2s, ETA:     0s[> ] 67/81, 33.3 task/s, elapsed: 2s, ETA:     0s[> ] 68/81, 33.3 task/s, elapsed: 2s, ETA:     0s[> ] 69/81, 33.3 task/s, elapsed: 2s, ETA:     0s[> ] 70/81, 33.3 task/s, elapsed: 2s, ETA:     0s[> ] 71/81, 33.4 task/s, elapsed: 2s, ETA:     0s[> ] 72/81, 33.4 task/s, elapsed: 2s, ETA:     0s[> ] 73/81, 33.4 task/s, elapsed: 2s, ETA:     0s[> ] 74/81, 33.4 task/s, elapsed: 2s, ETA:     0s[> ] 75/81, 33.5 task/s, elapsed: 2s, ETA:     0s[> ] 76/81, 33.5 task/s, elapsed: 2s, ETA:     0s[> ] 77/81, 33.5 task/s, elapsed: 2s, ETA:     0s[> ] 78/81, 33.6 task/s, elapsed: 2s, ETA:     0s[> ] 79/81, 33.6 task/s, elapsed: 2s, ETA:     0s[> ] 80/81, 33.7 task/s, elapsed: 2s, ETA:     0s[>>] 81/81, 33.7 task/s, elapsed: 2s, ETA:     0s
+Results writes to /tmp/tmpyyaxt5mb/results/results_nusc.json
+self.nusc: <nuscenes.nuscenes.NuScenes object at 0x7ff9c5699e50>
+self.eval_set: mini_val
+  0% 0/81 [00:00<?, ?it/s] 49% 40/81 [00:00<00:00, 392.99it/s] 99% 80/81 [00:00<00:00, 361.14it/s]                                    len(set(self.pred_boxes.sample_tokens)): 81
+len(set(self.gt_boxes.sample_tokens)): 81
+mAP: 0.0212
+mATE: 0.9634
+mASE: 0.7646
+mAOE: 1.1058
+mAVE: 1.1104
+mAAE: 0.7369
+NDS: 0.0641
+Eval time: 2.8s
+
+Per-class results:
+Object Class        	AP    	ATE   	ASE   	AOE   	AVE   	AAE   
+car                 	0.164 	0.768 	0.297 	1.365 	0.234 	0.160 
+truck               	0.000 	0.724 	0.402 	1.146 	0.228 	0.018 
+bus                 	0.001 	1.410 	0.828 	1.148 	3.783 	1.000 
+trailer             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+construction_vehicle	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+pedestrian          	0.047 	0.525 	0.419 	1.293 	0.639 	0.717 
+motorcycle          	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+bicycle             	0.000 	1.000 	1.000 	1.000 	1.000 	1.000 
+traffic_cone        	0.000 	1.208 	0.700 	nan   	nan   	nan   
+barrier             	0.000 	1.000 	1.000 	1.000 	nan   	nan   
+2025-04-23 09:36:45,865 - mmdet3d - INFO - Epoch(val) [6][41]	object/car_ap_dist_0.5: 0.0045, object/car_ap_dist_1.0: 0.0893, object/car_ap_dist_2.0: 0.2437, object/car_ap_dist_4.0: 0.3168, object/car_trans_err: 0.7679, object/car_scale_err: 0.2967, object/car_orient_err: 1.3645, object/car_vel_err: 0.2344, object/car_attr_err: 0.1604, object/mATE: 0.9634, object/mASE: 0.7646, object/mAOE: 1.1058, object/mAVE: 1.1104, object/mAAE: 0.7369, object/truck_ap_dist_0.5: 0.0000, object/truck_ap_dist_1.0: 0.0000, object/truck_ap_dist_2.0: 0.0000, object/truck_ap_dist_4.0: 0.0000, object/truck_trans_err: 0.7241, object/truck_scale_err: 0.4021, object/truck_orient_err: 1.1460, object/truck_vel_err: 0.2276, object/truck_attr_err: 0.0178, object/construction_vehicle_ap_dist_0.5: 0.0000, object/construction_vehicle_ap_dist_1.0: 0.0000, object/construction_vehicle_ap_dist_2.0: 0.0000, object/construction_vehicle_ap_dist_4.0: 0.0000, object/construction_vehicle_trans_err: 1.0000, object/construction_vehicle_scale_err: 1.0000, object/construction_vehicle_orient_err: 1.0000, object/construction_vehicle_vel_err: 1.0000, object/construction_vehicle_attr_err: 1.0000, object/bus_ap_dist_0.5: 0.0000, object/bus_ap_dist_1.0: 0.0000, object/bus_ap_dist_2.0: 0.0000, object/bus_ap_dist_4.0: 0.0035, object/bus_trans_err: 1.4102, object/bus_scale_err: 0.8278, object/bus_orient_err: 1.1482, object/bus_vel_err: 3.7826, object/bus_attr_err: 1.0000, object/trailer_ap_dist_0.5: 0.0000, object/trailer_ap_dist_1.0: 0.0000, object/trailer_ap_dist_2.0: 0.0000, object/trailer_ap_dist_4.0: 0.0000, object/trailer_trans_err: 1.0000, object/trailer_scale_err: 1.0000, object/trailer_orient_err: 1.0000, object/trailer_vel_err: 1.0000, object/trailer_attr_err: 1.0000, object/barrier_ap_dist_0.5: 0.0000, object/barrier_ap_dist_1.0: 0.0000, object/barrier_ap_dist_2.0: 0.0000, object/barrier_ap_dist_4.0: 0.0000, object/barrier_trans_err: 1.0000, object/barrier_scale_err: 1.0000, object/barrier_orient_err: 1.0000, object/barrier_vel_err: nan, object/barrier_attr_err: nan, object/motorcycle_ap_dist_0.5: 0.0000, object/motorcycle_ap_dist_1.0: 0.0000, object/motorcycle_ap_dist_2.0: 0.0000, object/motorcycle_ap_dist_4.0: 0.0000, object/motorcycle_trans_err: 1.0000, object/motorcycle_scale_err: 1.0000, object/motorcycle_orient_err: 1.0000, object/motorcycle_vel_err: 1.0000, object/motorcycle_attr_err: 1.0000, object/bicycle_ap_dist_0.5: 0.0000, object/bicycle_ap_dist_1.0: 0.0000, object/bicycle_ap_dist_2.0: 0.0000, object/bicycle_ap_dist_4.0: 0.0000, object/bicycle_trans_err: 1.0000, object/bicycle_scale_err: 1.0000, object/bicycle_orient_err: 1.0000, object/bicycle_vel_err: 1.0000, object/bicycle_attr_err: 1.0000, object/pedestrian_ap_dist_0.5: 0.0165, object/pedestrian_ap_dist_1.0: 0.0301, object/pedestrian_ap_dist_2.0: 0.0494, object/pedestrian_ap_dist_4.0: 0.0927, object/pedestrian_trans_err: 0.5245, object/pedestrian_scale_err: 0.4194, object/pedestrian_orient_err: 1.2930, object/pedestrian_vel_err: 0.6386, object/pedestrian_attr_err: 0.7172, object/traffic_cone_ap_dist_0.5: 0.0000, object/traffic_cone_ap_dist_1.0: 0.0000, object/traffic_cone_ap_dist_2.0: 0.0000, object/traffic_cone_ap_dist_4.0: 0.0000, object/traffic_cone_trans_err: 1.2077, object/traffic_cone_scale_err: 0.6997, object/traffic_cone_orient_err: nan, object/traffic_cone_vel_err: nan, object/traffic_cone_attr_err: nan, object/nds: 0.0641, object/map: 0.0212

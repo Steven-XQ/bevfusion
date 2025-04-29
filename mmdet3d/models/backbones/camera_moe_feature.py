@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from mmcv.runner import BaseModule
 from mmdet.models import BACKBONES
-from mmcv.cnn import build_norm_layer
 from torch.nn import functional as F
 
 __all__ = ["MoENetwork"]
@@ -40,61 +39,52 @@ class MoE(BaseModule):
             self.router = MLPRouter(**router)
         
         # 做卷积，让resnet在三个阶段的输出与swin保持一致
-        # self.conv_swin_1 = nn.Conv2d(192, 192, kernel_size=1, stride=1, padding=0)
-        # self.conv_swin_2 = nn.Conv2d(384, 384, kernel_size=1, stride=1, padding=0)
-        # self.conv_swin_3 = nn.Conv2d(768, 768, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet_2 = nn.Conv2d(1024, 384, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet_3 = nn.Conv2d(2048, 768, kernel_size=1, stride=1, padding=0)
 
-        self.conv_resnet_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)  
-        self.conv_resnet_2 = nn.Conv2d(1024, 384, kernel_size=1, stride=1, padding=0) 
-        self.conv_resnet_3 = nn.Conv2d(2048, 768, kernel_size=1, stride=1, padding=0) 
-
-        self.conv_pvt_1 = nn.Conv2d(128, 192, kernel_size=1, stride=1, padding=0)  
-        self.conv_pvt_2 = nn.Conv2d(320, 384, kernel_size=1, stride=1, padding=0) 
-        self.conv_pvt_3 = nn.Conv2d(512, 768, kernel_size=1, stride=1, padding=0) 
+        self.conv_pvt_1 = nn.Conv2d(128, 192, kernel_size=1, stride=1, padding=0)
+        self.conv_pvt_2 = nn.Conv2d(320, 384, kernel_size=1, stride=1, padding=0)
+        self.conv_pvt_3 = nn.Conv2d(512, 768, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
-        final_output_1 = torch.zeros((6, 192, 32, 88), device=x.device)
-        final_output_2 = torch.zeros((6, 384, 16, 44), device=x.device)
-        final_output_3 = torch.zeros((6, 768, 8, 22), device=x.device)
+        B = x.size(0)
+        final_output_1 = torch.zeros((B, 192, 32, 88), device=x.device)
+        final_output_2 = torch.zeros((B, 384, 16, 44), device=x.device)
+        final_output_3 = torch.zeros((B, 768, 8, 22), device=x.device)
 
         # 获取专家权重
         routing_probs = self.router(x)  # Shape: [batch_size, num_experts]
         weights, indices = torch.topk(routing_probs, k=2, dim=-1)
-        # print(f"routing_probs: {routing_probs}")
         
-        # expert_outputs = []
         for i, expert in enumerate(self.experts):
             idx, top = torch.where(indices == i)
+            if idx.numel() == 0:
+                continue
             # 获取专家输出
-            expert_output = expert(x[idx])  
+            expert_output = expert(x[idx])
             
             # 调整输出的维度
-            if i == 0:  # SwinTransformer 
-                # expert_output_1 = self.conv_swin_1(expert_output[0])  
-                # expert_output_2 = self.conv_swin_2(expert_output[1]) 
-                # expert_output_3 = self.conv_swin_3(expert_output[2]) 
+            if i == 0:  # SwinTransformer
                 expert_output_1 = expert_output[0]
                 expert_output_2 = expert_output[1]
                 expert_output_3 = expert_output[2]
             elif i == 1 or i == 2:  # ResNet50 & resnet101
-                expert_output_1 = self.conv_resnet_1(expert_output[0])  
+                expert_output_1 = self.conv_resnet_1(expert_output[0])
                 expert_output_2 = self.conv_resnet_2(expert_output[1])
-                expert_output_3 = self.conv_resnet_3(expert_output[2]) 
+                expert_output_3 = self.conv_resnet_3(expert_output[2])
             elif i == 3:
-                expert_output_1 = self.conv_pvt_1(expert_output[0])  
+                expert_output_1 = self.conv_pvt_1(expert_output[0])
                 expert_output_2 = self.conv_pvt_2(expert_output[1])
-                expert_output_3 = self.conv_pvt_3(expert_output[2]) 
+                expert_output_3 = self.conv_pvt_3(expert_output[2])
+            else:
+                raise ValueError(f"Unsupported expert for index {i}")
             
             # 专家输出与权重相乘
-            final_output_1[idx] += expert_output_1 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
-            final_output_2[idx] += expert_output_2 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
-            final_output_3[idx] += expert_output_3 * weights[idx, top].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
-            
-        
-        # # 专家的结果相加
-        # final_output_1 = torch.sum([output[0] for output in expert_outputs])
-        # final_output_2 = torch.sum([output[1] for output in expert_outputs])
-        # final_output_3 = torch.sum([output[2] for output in expert_outputs])
+            w = weights[idx, top].view(-1, 1, 1, 1)
+            final_output_1[idx] += expert_output_1 * w
+            final_output_2[idx] += expert_output_2 * w
+            final_output_3[idx] += expert_output_3 * w
 
         # 返回最终结果
         return [final_output_1, final_output_2, final_output_3]
