@@ -26,17 +26,15 @@ class MLPRouter(nn.Module):
         return logits
 
 class MoE(BaseModule):
-    def __init__(self, num_experts, in_channels, experts_cfg, router=None, init_cfg=None):
+    def __init__(self, num_experts, in_channels, experts_cfg, router, init_cfg=None):
         super(MoE, self).__init__(init_cfg)
 
         # 创建experts
         self.experts = nn.ModuleList([BACKBONES.build(cfg) for cfg in experts_cfg])
 
         # 创建router
-        if router is None:
-            self.router = MLPRouter(in_channels, num_experts)
-        else:
-            self.router = MLPRouter(**router)
+        self.router = MLPRouter(in_channels, num_experts)
+        self.k = router['k']
         
         # 做卷积，让resnet在三个阶段的输出与swin保持一致
         self.conv_resnet_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)
@@ -55,7 +53,7 @@ class MoE(BaseModule):
 
         # 获取专家权重
         routing_probs = self.router(x)  # Shape: [batch_size, num_experts]
-        weights, indices = torch.topk(routing_probs, k=2, dim=-1)
+        weights, indices = torch.topk(routing_probs, k=self.k, dim=-1)
         
         for i, expert in enumerate(self.experts):
             idx, top = torch.where(indices == i)
@@ -65,20 +63,21 @@ class MoE(BaseModule):
             expert_output = expert(x[idx])
             
             # 调整输出的维度
-            if i == 0:  # SwinTransformer
+            expert_type = type(expert).__name__
+            if expert_type == "SwinTransformer":
                 expert_output_1 = expert_output[0]
                 expert_output_2 = expert_output[1]
                 expert_output_3 = expert_output[2]
-            elif i == 1 or i == 2:  # ResNet50 & resnet101
+            elif expert_type == "ResNet":  # ResNet50 & resnet101
                 expert_output_1 = self.conv_resnet_1(expert_output[0])
                 expert_output_2 = self.conv_resnet_2(expert_output[1])
                 expert_output_3 = self.conv_resnet_3(expert_output[2])
-            elif i == 3:
+            elif expert_type == "PyramidVisionTransformer":
                 expert_output_1 = self.conv_pvt_1(expert_output[0])
                 expert_output_2 = self.conv_pvt_2(expert_output[1])
                 expert_output_3 = self.conv_pvt_3(expert_output[2])
             else:
-                raise ValueError(f"Unsupported expert for index {i}")
+                raise ValueError(f"Unsupported expert type {expert_type}")
             
             # 专家输出与权重相乘
             w = weights[idx, top].view(-1, 1, 1, 1)
@@ -91,7 +90,7 @@ class MoE(BaseModule):
 
 @BACKBONES.register_module()
 class MoENetwork(BaseModule):
-    def __init__(self, num_experts=4, in_channels=3, experts_cfg=None, router=None, init_cfg=None):
+    def __init__(self, num_experts, in_channels, experts_cfg, router, init_cfg=None):
         super(MoENetwork, self).__init__(init_cfg)
         self.moe = MoE(num_experts, in_channels, experts_cfg, router)
     

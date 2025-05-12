@@ -1,0 +1,22 @@
+mAP: 0.6852
+mATE: 0.2877
+mASE: 0.2540
+mAOE: 0.3042
+mAVE: 0.2556
+mAAE: 0.1868
+NDS: 0.7138
+Eval time: 116.7s
+
+Per-class results:
+Object Class            AP      ATE     ASE     AOE     AVE     AAE
+car                     0.892   0.170   0.148   0.060   0.273   0.185
+truck                   0.647   0.328   0.181   0.094   0.246   0.217
+bus                     0.753   0.338   0.189   0.063   0.440   0.276
+trailer                 0.424   0.522   0.202   0.621   0.209   0.140
+construction_vehicle    0.304   0.733   0.433   0.795   0.118   0.294
+pedestrian              0.882   0.134   0.288   0.387   0.217   0.100
+motorcycle              0.787   0.184   0.249   0.227   0.353   0.269
+bicycle                 0.648   0.167   0.255   0.437   0.188   0.013
+traffic_cone            0.796   0.123   0.317   nan     nan     nan
+barrier                 0.720   0.179   0.277   0.055   nan     nan
+{'object/car_ap_dist_0.5': 0.8085, 'object/car_ap_dist_1.0': 0.897, 'object/car_ap_dist_2.0': 0.9263, 'object/car_ap_dist_4.0': 0.9359, 'object/car_trans_err': 0.1699, 'object/car_scale_err': 0.148, 'object/car_orient_err': 0.0598, 'object/car_vel_err': 0.2734, 'object/car_attr_err': 0.1851, 'object/mATE': 0.2877, 'object/mASE': 0.254, 'object/mAOE': 0.3042, 'object/mAVE': 0.2556, 'object/mAAE': 0.1868, 'object/truck_ap_dist_0.5': 0.4416, 'object/truck_ap_dist_1.0': 0.6448, 'object/truck_ap_dist_2.0': 0.731, 'object/truck_ap_dist_4.0': 0.7701, 'object/truck_trans_err': 0.3277, 'object/truck_scale_err': 0.1812, 'object/truck_orient_err': 0.0939, 'object/truck_vel_err': 0.2458, 'object/truck_attr_err': 0.2171, 'object/construction_vehicle_ap_dist_0.5': 0.0446, 'object/construction_vehicle_ap_dist_1.0': 0.2096, 'object/construction_vehicle_ap_dist_2.0': 0.4217, 'object/construction_vehicle_ap_dist_4.0': 0.5387, 'object/construction_vehicle_trans_err': 0.733, 'object/construction_vehicle_scale_err': 0.4331, 'object/construction_vehicle_orient_err': 0.7948, 'object/construction_vehicle_vel_err': 0.1182, 'object/construction_vehicle_attr_err': 0.2937, 'object/bus_ap_dist_0.5': 0.481, 'object/bus_ap_dist_1.0': 0.7578, 'object/bus_ap_dist_2.0': 0.8765, 'object/bus_ap_dist_4.0': 0.8979, 'object/bus_trans_err': 0.3385, 'object/bus_scale_err': 0.1893, 'object/bus_orient_err': 0.0632, 'object/bus_vel_err': 0.4396, 'object/bus_attr_err': 0.2765, 'object/trailer_ap_dist_0.5': 0.1544, 'object/trailer_ap_dist_1.0': 0.3581, 'object/trailer_ap_dist_2.0': 0.5414, 'object/trailer_ap_dist_4.0': 0.642, 'object/trailer_trans_err': 0.5218, 'object/trailer_scale_err': 0.2018, 'object/trailer_orient_err': 0.6209, 'object/trailer_vel_err': 0.2088, 'object/trailer_attr_err': 0.1397, 'object/barrier_ap_dist_0.5': 0.6325, 'object/barrier_ap_dist_1.0': 0.7194, 'object/barrier_ap_dist_2.0': 0.7598, 'object/barrier_ap_dist_4.0': 0.7668, 'object/barrier_trans_err': 0.1786, 'object/barrier_scale_err': 0.277, 'object/barrier_orient_err': 0.055, 'object/barrier_vel_err': nan, 'object/barrier_attr_err': nan, 'object/motorcycle_ap_dist_0.5': 0.6987, 'object/motorcycle_ap_dist_1.0': 0.7991, 'object/motorcycle_ap_dist_2.0': 0.8187, 'object/motorcycle_ap_dist_4.0': 0.8325, 'object/motorcycle_trans_err': 0.1836, 'object/motorcycle_scale_err': 0.2491, 'object/motorcycle_orient_err': 0.2266, 'object/motorcycle_vel_err': 0.3531, 'object/motorcycle_attr_err': 0.2691, 'object/bicycle_ap_dist_0.5': 0.6161, 'object/bicycle_ap_dist_1.0': 0.6484, 'object/bicycle_ap_dist_2.0': 0.6583, 'object/bicycle_ap_dist_4.0': 0.6707, 'object/bicycle_trans_err': 0.1671, 'object/bicycle_scale_err': 0.255, 'object/bicycle_orient_err': 0.4368, 'object/bicycle_vel_err': 0.1883, 'object/bicycle_attr_err': 0.0134, 'object/pedestrian_ap_dist_0.5': 0.8638, 'object/pedestrian_ap_dist_1.0': 0.8778, 'object/pedestrian_ap_dist_2.0': 0.8872, 'object/pedestrian_ap_dist_4.0': 0.8973, 'object/pedestrian_trans_err': 0.1336, 'object/pedestrian_scale_err': 0.2883, 'object/pedestrian_orient_err': 0.3866, 'object/pedestrian_vel_err': 0.2173, 'object/pedestrian_attr_err': 0.1002, 'object/traffic_cone_ap_dist_0.5': 0.7759, 'object/traffic_cone_ap_dist_1.0': 0.7852, 'object/traffic_cone_ap_dist_2.0': 0.8008, 'object/traffic_cone_ap_dist_4.0': 0.8214, 'object/traffic_cone_trans_err': 0.1235, 'object/traffic_cone_scale_err': 0.3171, 'object/traffic_cone_orient_err': nan, 'object/traffic_cone_vel_err': nan, 'object/traffic_cone_attr_err': nan, 'object/nds': 0.7137896629965754, 'object/map': 0.6852351777791051}
