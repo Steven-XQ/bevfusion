@@ -6,24 +6,75 @@ from torch.nn import functional as F
 
 __all__ = ["MoENetwork"]
 
-class MLPRouter(nn.Module):
+class AttentionRouter(nn.Module):
+    def __init__(self, in_channels, num_experts, embed_dim=128, num_heads=4):
+        super(AttentionRouter, self).__init__()
+
+        self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=1)
+        self.norm = nn.LayerNorm(embed_dim)
+
+        self.attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+
+        self.mlp = nn.Sequential(
+            nn.Linear(embed_dim, embed_dim // 2),
+            nn.ReLU(),
+            nn.LayerNorm(embed_dim // 2),
+
+            nn.Linear(embed_dim // 2, num_experts)
+        )
+
+    def forward(self, x):
+        x = self.proj(x)  # [B, embed_dim, H, W]
+
+        x = x.flatten(2).transpose(1, 2)  # [B, H*W, embed_dim]
+
+        x = self.norm(x)
+
+        attn_out, _ = self.attn(x, x, x)  # [B, H*W, embed_dim]
+
+        pooled = attn_out.mean(dim=1)  # [B, embed_dim]
+
+        out = self.mlp(pooled)  # [B, num_experts]
+
+        return F.softmax(out, dim=-1)
+
+
+class BasicRouter(nn.Module):
     
     def __init__(self, in_channels, num_experts):
-        super(MLPRouter, self).__init__()
+        super(BasicRouter, self).__init__()
 
-        self.conv = nn.Conv2d(in_channels, 512, kernel_size=3)
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(512, num_experts)
+        self.encoder = nn.Sequential(
+            nn.Conv2d(in_channels, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+
+            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+
+            nn.AdaptiveAvgPool2d((4, 4))
+        )
+
+        self.mlp = nn.Sequential(
+            nn.Linear(2048, 256),
+            nn.ReLU(),
+            nn.LayerNorm(256),
+
+            nn.Linear(256, num_experts)
+        )
     
     def forward(self, x):
-        out = self.conv(x)
-        out = self.pool(out)
+        out = self.encoder(x)
 
         out = out.view(out.size(0), -1)
-        out = self.fc(out)
 
-        logits = F.softmax(out, dim=-1)
-        return logits
+        out = self.mlp(out)
+
+        return F.softmax(out, dim=-1)
+
 
 class MoE(BaseModule):
     def __init__(self, num_experts, in_channels, experts_cfg, router, init_cfg=None):
@@ -33,7 +84,13 @@ class MoE(BaseModule):
         self.experts = nn.ModuleList([BACKBONES.build(cfg) for cfg in experts_cfg])
 
         # 创建router
-        self.router = MLPRouter(in_channels, num_experts)
+        if router['type'] == 'BasicRouter':
+            self.router = BasicRouter(in_channels, num_experts)
+        elif router['type'] == 'AttentionRouter':
+            self.router = AttentionRouter(in_channels, num_experts, router['embed_dim'], router['num_heads'])
+        else:
+            raise ValueError(f"Unknown router type: {router['type']}")
+
         self.k = router['k']
         
         # 做卷积，让resnet在三个阶段的输出与swin保持一致
@@ -57,8 +114,10 @@ class MoE(BaseModule):
         
         for i, expert in enumerate(self.experts):
             idx, top = torch.where(indices == i)
+
             if idx.numel() == 0:
                 continue
+            
             # 获取专家输出
             expert_output = expert(x[idx])
             
