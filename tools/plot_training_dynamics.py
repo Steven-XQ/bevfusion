@@ -29,7 +29,7 @@ iteration = []
 loss = []
 
 for dict in dicts:
-    if dict:
+    if 'mode' in dict:
         if dict['mode'] == 'val':
             epoch.append(dict['epoch'] + 1)
             mAP.append(dict['object/map'])
@@ -39,10 +39,10 @@ for dict in dicts:
             loss.append(dict['loss'])
 
 loss = np.array(loss)
-iteration = np.array(iteration)[loss < 5]
-loss = loss[loss < 5]
+iteration = np.array(iteration)[loss < 2]
+loss = loss[loss < 2]
 
-plt.figure(figsize=(len(epoch), 10))
+plt.figure(figsize=(max(10, len(epoch)), 10))
 gs = gridspec.GridSpec(2, 2)
 
 ax0 = plt.subplot(gs[0, :])

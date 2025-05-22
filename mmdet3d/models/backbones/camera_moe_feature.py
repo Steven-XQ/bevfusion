@@ -94,9 +94,13 @@ class MoE(BaseModule):
         self.k = router['k']
         
         # 做卷积，让resnet在三个阶段的输出与swin保持一致
-        self.conv_resnet_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)
-        self.conv_resnet_2 = nn.Conv2d(1024, 384, kernel_size=1, stride=1, padding=0)
-        self.conv_resnet_3 = nn.Conv2d(2048, 768, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet50_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet50_2 = nn.Conv2d(1024, 384, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet50_3 = nn.Conv2d(2048, 768, kernel_size=1, stride=1, padding=0)
+
+        self.conv_resnet101_1 = nn.Conv2d(512, 192, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet101_2 = nn.Conv2d(1024, 384, kernel_size=1, stride=1, padding=0)
+        self.conv_resnet101_3 = nn.Conv2d(2048, 768, kernel_size=1, stride=1, padding=0)
 
         self.conv_pvt_1 = nn.Conv2d(128, 192, kernel_size=1, stride=1, padding=0)
         self.conv_pvt_2 = nn.Conv2d(320, 384, kernel_size=1, stride=1, padding=0)
@@ -127,10 +131,17 @@ class MoE(BaseModule):
                 expert_output_1 = expert_output[0]
                 expert_output_2 = expert_output[1]
                 expert_output_3 = expert_output[2]
-            elif expert_type == "ResNet":  # ResNet50 & resnet101
-                expert_output_1 = self.conv_resnet_1(expert_output[0])
-                expert_output_2 = self.conv_resnet_2(expert_output[1])
-                expert_output_3 = self.conv_resnet_3(expert_output[2])
+            elif expert_type == "ResNet":
+                if len(expert.layer3) == 6: # ResNet50
+                    expert_output_1 = self.conv_resnet50_1(expert_output[0])
+                    expert_output_2 = self.conv_resnet50_2(expert_output[1])
+                    expert_output_3 = self.conv_resnet50_3(expert_output[2])
+                elif len(expert.layer3) == 23: # ResNet101
+                    expert_output_1 = self.conv_resnet101_1(expert_output[0])
+                    expert_output_2 = self.conv_resnet101_2(expert_output[1])
+                    expert_output_3 = self.conv_resnet101_3(expert_output[2])
+                else:
+                    raise ValueError(f"Unsupported ResNet variant: len(expert.layer3) == {len(expert.layer3)}")
             elif expert_type == "PyramidVisionTransformer":
                 expert_output_1 = self.conv_pvt_1(expert_output[0])
                 expert_output_2 = self.conv_pvt_2(expert_output[1])
