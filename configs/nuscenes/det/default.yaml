@@ -29,15 +29,6 @@ train_pipeline:
     reduce_beams: ${reduce_beams}
     load_augmented: ${load_augmented}
   -
-    type: LoadPointsFromMultiSweeps
-    sweeps_num: 0
-    load_dim: ${load_dim}
-    use_dim: ${use_dim}
-    reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
-    remove_close: true
-    load_augmented: ${load_augmented}
-  -
     type: LoadRadarPointsMultiSweeps
     load_dim: 18
     sweeps_num: ${radar_sweeps}
@@ -153,7 +144,7 @@ train_pipeline:
       - lidar_aug_matrix
   -
     type: GTDepth
-    keyframe_only: true 
+    keyframe_only: False 
 
 test_pipeline:
   -
@@ -165,15 +156,6 @@ test_pipeline:
     load_dim: ${load_dim}
     use_dim: ${use_dim}
     reduce_beams: ${reduce_beams}
-    load_augmented: ${load_augmented}
-  -
-    type: LoadPointsFromMultiSweeps
-    sweeps_num: 9
-    load_dim: ${load_dim}
-    use_dim: ${use_dim}
-    reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
-    remove_close: true
     load_augmented: ${load_augmented}
   -
     type: LoadRadarPointsMultiSweeps
@@ -233,4 +215,4 @@ test_pipeline:
       - lidar_aug_matrix
   -
     type: GTDepth
-    keyframe_only: true 
+    keyframe_only: False

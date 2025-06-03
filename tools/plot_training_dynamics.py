@@ -5,8 +5,8 @@ from matplotlib.ticker import MaxNLocator
 import argparse
 import numpy as np
 
-EPOCH_ITER = 15448
-LOG_INTERVAL = 50
+EPOCH_ITER = 7724
+LOG_INTERVAL = 100
 NUM_TEXT_LABELS = 15
 
 parser = argparse.ArgumentParser()
@@ -31,16 +31,16 @@ loss = []
 for dict in dicts:
     if 'mode' in dict:
         if dict['mode'] == 'val':
-            epoch.append(dict['epoch'] + 1)
+            epoch.append(dict['epoch'])
             mAP.append(dict['object/map'])
             nds.append(dict['object/nds'])
         else:
-            iteration.append((dict['epoch']) * EPOCH_ITER + dict['iter'])
+            iteration.append((dict['epoch'] - 1) * EPOCH_ITER + dict['iter'])
             loss.append(dict['loss'])
 
 loss = np.array(loss)
-iteration = np.array(iteration)[loss < 2]
-loss = loss[loss < 2]
+iteration = np.array(iteration)[loss < 5]
+loss = loss[loss < 5]
 
 plt.figure(figsize=(max(10, len(epoch)), 10))
 gs = gridspec.GridSpec(2, 2)

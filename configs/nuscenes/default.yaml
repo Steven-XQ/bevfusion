@@ -64,14 +64,14 @@ train_pipeline:
     reduce_beams: ${reduce_beams}
     load_augmented: ${load_augmented}
   -
-    type: LoadPointsFromMultiSweeps
-    sweeps_num: 9
-    load_dim: ${load_dim}
-    use_dim: ${use_dim}
-    reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
-    remove_close: true
-    load_augmented: ${load_augmented}
+    type: LoadRadarPointsMultiSweeps
+    load_dim: 18
+    sweeps_num: ${radar_sweeps}
+    use_dim: ${radar_use_dims}
+    max_num: ${radar_max_points}
+    compensate_velocity: ${radar_compensate_velocity}
+    filtering: ${radar_filtering}
+    normalize: ${radar_normalize}
   -
     type: LoadAnnotations3D
     with_bbox_3d: true
@@ -130,12 +130,6 @@ train_pipeline:
     trans_lim: ${augment3d.translate}
     is_train: true
   -
-    type: LoadBEVSegmentation
-    dataset_root: ${dataset_root}
-    xbound: [-50.0, 50.0, 0.5]
-    ybound: [-50.0, 50.0, 0.5]
-    classes: ${map_classes}
-  -
     type: RandomFlip3D
   -
     type: PointsRangeFilter
@@ -171,21 +165,21 @@ train_pipeline:
     keys:
       - img
       - points
+      - radar
       - gt_bboxes_3d
       - gt_labels_3d
-      - gt_masks_bev
     meta_keys:
       - camera_intrinsics
       - camera2ego
       - lidar2ego
       - lidar2camera
-      - camera2lidar
       - lidar2image
+      - camera2lidar
       - img_aug_matrix
       - lidar_aug_matrix
   -
     type: GTDepth
-    keyframe_only: true 
+    keyframe_only: False 
 
 test_pipeline:
   -
@@ -199,14 +193,14 @@ test_pipeline:
     reduce_beams: ${reduce_beams}
     load_augmented: ${load_augmented}
   -
-    type: LoadPointsFromMultiSweeps
-    sweeps_num: 9
-    load_dim: ${load_dim}
-    use_dim: ${use_dim}
-    reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
-    remove_close: true
-    load_augmented: ${load_augmented}
+    type: LoadRadarPointsMultiSweeps
+    load_dim: 18
+    sweeps_num: ${radar_sweeps}
+    use_dim: ${radar_use_dims}
+    max_num: ${radar_max_points}
+    compensate_velocity: ${radar_compensate_velocity}
+    filtering: ${radar_filtering}
+    normalize: ${radar_normalize}
   -
     type: LoadAnnotations3D
     with_bbox_3d: true
@@ -227,12 +221,6 @@ test_pipeline:
     trans_lim: 0.0
     is_train: false
   -
-    type: LoadBEVSegmentation
-    dataset_root: ${dataset_root}
-    xbound: [-50.0, 50.0, 0.5]
-    ybound: [-50.0, 50.0, 0.5]
-    classes: ${map_classes}
-  -
     type: PointsRangeFilter
     point_cloud_range: ${point_cloud_range}
   -
@@ -247,25 +235,26 @@ test_pipeline:
     keys:
       - img
       - points
+      - radar
       - gt_bboxes_3d
       - gt_labels_3d
-      - gt_masks_bev
+      #- gt_masks_bev
     meta_keys:
       - camera_intrinsics
       - camera2ego
       - lidar2ego
       - lidar2camera
-      - camera2lidar
       - lidar2image
+      - camera2lidar
       - img_aug_matrix
       - lidar_aug_matrix
   -
     type: GTDepth
-    keyframe_only: true 
+    keyframe_only: False
 
 data:
-  samples_per_gpu: 4 #4
-  workers_per_gpu: 4 #4
+  samples_per_gpu: 8
+  workers_per_gpu: 4
   train:
     type: CBGSDataset
     dataset:

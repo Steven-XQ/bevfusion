@@ -2,6 +2,7 @@ import cv2
 import os
 import numpy as np
 import argparse
+from tqdm import tqdm
 # import imageio
 
 parser = argparse.ArgumentParser()
@@ -20,7 +21,7 @@ frame_names = sorted(os.listdir(camera_dirs[0]))[args.start : (args.end if args.
 
 frames = []
 
-for name in frame_names:
+for name in tqdm(frame_names):
 
     cam_imgs = []
     for cam_dir in camera_dirs:
@@ -52,7 +53,7 @@ for name in frame_names:
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 frame_size = (int(frames[0].shape[1] * 0.5), int(frames[0].shape[0] * 0.5))
 out = cv2.VideoWriter(args.output, fourcc, args.fps, frame_size)
-for f in frames:
+for f in tqdm(frames):
     f = cv2.resize(f, frame_size)
     out.write(f)
 out.release()

@@ -13,7 +13,7 @@ arch = [
 
     # Input feature map
     to_Conv(name='input', xlabel=3, ylabel='H', zlabel='W', offset="(0.8,0,0)", to="(0,0,0)",
-            width=4, height=35, depth=35, caption="{Input\n[B, C, H, W]}"),
+            width=4, height=35, depth=35, caption=r"{Input\\{[B, C, H, W]}}"),
 
     # 1x1 Conv projection to embedding dim
     to_Conv(name='proj', xlabel=128, ylabel='H', zlabel='W', offset="(4,0,0)", to="(input-east)",
@@ -50,7 +50,7 @@ arch = [
     to_connection('mlp1', 'norm2'),
 
     to_Conv(name='mlp2', ylabel=4, offset="(2.5,0,0)", to="(norm2-east)", width=1, height=5, depth=1,
-                      caption='{Linear\n[B, num\_experts]}'),
+                      caption=r'{Linear\\{[B, num\_experts]}}'),
     to_connection('norm2', 'mlp2'),
 
     # Softmax
@@ -60,36 +60,37 @@ arch = [
 
     # Expert 1
     to_Pool(
-        name='expert1', caption='Expert 1\n(SwinT)', offset="(5,9,0)", to="(softmax-east)", width=10, height=15, depth=15, opacity=0.5
+        name='expert1', caption='Expert 1\n(SwinT)', offset="(5,10.5,0)", to="(softmax-east)", width=15, height=15, depth=15, opacity=0.5
     ),
-    to_connection('softmax', 'expert1'),
 
     # Expert 2
     to_Pool(
-        name='expert2', caption='Expert 2\n(Resnet50)', offset="(5,3,0)", to="(softmax-east)", width=10, height=15, depth=15, opacity=0.5
+        name='expert2', caption='Expert 2\n(Resnet50)', offset="(5,3.5,0)", to="(softmax-east)", width=15, height=15, depth=15, opacity=0.5
     ),
-    to_connection('softmax', 'expert2'),
+    to_connection('softmax', 'expert2', dashed=True),
 
     # Expert 3
     to_Pool(
-        name='expert3', caption='Expert 3\n(Resnet101)', offset="(5,-3,0)", to="(softmax-east)", width=10, height=15, depth=15, opacity=0.5
+        name='expert3', caption='Expert 3\n(Resnet101)', offset="(5,-3.5,0)", to="(softmax-east)", width=15, height=15, depth=15, opacity=0.5
     ),
-    to_connection('softmax', 'expert3'),
 
     # Expert 4
     to_Pool(
-        name='expert4', caption='Expert 4\n(PVT)', offset="(5,-9,0)", to="(softmax-east)", width=10, height=15, depth=15, opacity=0.5
+        name='expert4', caption='Expert 4\n(PVT)', offset="(5,-10.5,0)", to="(softmax-east)", width=15, height=15, depth=15, opacity=0.5
     ),
-    to_connection('softmax', 'expert4'),
+
+    to_skip("input", "expert2", pos1=1.39, pos2=1.4, top=True),
+
+    to_Ball(name='mult', offset="(3,0,0)", to="(expert2-east)", radius=2.5, opacity=0.6, logo=r'\times'),
+    to_connection('expert2', 'mult', 'blue'),
+    to_skip('softmax', 'mult', pos1=4, pos2=4.65, top=False),
 
     # Merge
-    to_Conv(name='stage1', caption='Stage 1', xlabel=192, offset="(5,-3,0)", to="(expert2-east)", width=8, height=40, depth=40),
+    to_Conv(name='stage1', caption='Stage 1', xlabel=192, offset="(3,-3,0)", to="(mult-east)", width=8, height=40, depth=40),
     to_Conv(name='stage2', caption='Stage 2', xlabel=384, offset="(0,0,0)", to="(stage1-east)", width=16, height=40, depth=40),
     to_Conv(name='stage3', caption='Stage 3', xlabel=768, offset="(0,0,0)", to="(stage2-east)", width=32, height=40, depth=40),
-    to_connection('expert1', 'stage1'),
-    to_connection('expert2', 'stage1'),
-    to_connection('expert3', 'stage1'),
-    to_connection('expert4', 'stage1'),
+
+    to_connection('mult', 'stage1', color='blue'),
 
     # Neck
     to_ConvSoftMax(
@@ -97,7 +98,7 @@ arch = [
         offset="(5,0,0)", to="(stage3-east)", width=10,
         height=40, depth=40
     ),
-    to_connection("stage3", "Neck"),
+    to_connection("stage3", "Neck", color='blue'),
 
     to_raw(r"""
            \draw[dashed, thick, green] 
@@ -108,12 +109,22 @@ arch = [
 
     to_raw(r"""
            \usetikzlibrary{calc}
-           \node[above, text=red, font=\bfseries] at ($(proj-northeast) + (-2,7)$) {AttentionRouter};
+           \node[above, text=red, font=\bfseries] at ($(proj-northeast) + (-1,7)$) {\huge AttentionRouter};
            """),
 
     to_raw(r"""
            \usetikzlibrary{calc}
-           \node[above, text=red, font=\bfseries] at ($(stage3-northwest) + (1,2)$) {Feature Maps};
+           \node[above, text=red, font=\bfseries] at ($(stage3-northwest) + (1,2)$) {\LARGE Feature Maps};
+           """),
+
+    to_raw(r"""
+           \usetikzlibrary{calc}
+           \node[above, text=red, font=\bfseries] at ($(softmax-north) + (2.2,2)$) {\LARGE top 1};
+           """),
+
+    to_raw(r"""
+           \usetikzlibrary{calc}
+           \node[above, text=red, font=\bfseries] at ($(softmax-south) + (2.5,-1.5)$) {\LARGE weight};
            """),
 
     to_end()

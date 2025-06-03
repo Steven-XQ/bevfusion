@@ -1,0 +1,30 @@
+seed: 0
+deterministic: false
+
+checkpoint_config:
+  by_epoch: false
+  interval: 1000
+  max_keep_ckpts: 1
+  filename_tmpl: 'epoch_{}_iter_{}.pth'
+  save_last: False
+
+log_config:
+  interval: 50
+  hooks:
+    -
+      type: TextLoggerHook
+    -
+      type: TensorboardLoggerHook
+
+load_from: null
+resume_from: null
+
+cudnn_benchmark: false
+fp16:
+  loss_scale: 
+    growth_interval: 2000
+
+max_epochs: 100
+runner:
+  type: CustomEpochBasedRunner
+  max_epochs: ${max_epochs}
