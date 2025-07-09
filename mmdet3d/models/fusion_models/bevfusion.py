@@ -4,6 +4,7 @@ import torch
 from mmcv.runner import auto_fp16, force_fp32
 from torch import nn
 from torch.nn import functional as F
+from mmdet3d.models.backbones.camera_moe_feature import MoENetwork
 
 from mmdet3d.models.builder import (
     build_backbone,
@@ -315,6 +316,10 @@ class BEVFusion(Base3DFusionModel):
                     metas,
                     gt_depths=depths,
                 )
+                if isinstance(self.encoders['camera']['backbone'], MoENetwork):
+                    routing_probs = self.encoders['camera']['backbone'].get_routing_probs()
+                    lb_loss = load_balance_loss(routing_probs)
+                    auxiliary_losses['lb_loss'] = lb_loss
                 if self.use_depth_loss:
                     feature, auxiliary_losses['depth'] = feature[0], feature[-1]
             elif sensor == "lidar":
@@ -361,6 +366,8 @@ class BEVFusion(Base3DFusionModel):
                     outputs["loss/depth"] = auxiliary_losses['depth']
                 else:
                     raise ValueError('Use depth loss is true, but depth loss not found')
+            if 'lb_loss' in auxiliary_losses:
+                outputs["loss/moe/load_balance"] = auxiliary_losses['lb_loss'] * 0.001
             return outputs
         else:
             outputs = [{} for _ in range(batch_size)]
@@ -389,3 +396,8 @@ class BEVFusion(Base3DFusionModel):
                     raise ValueError(f"unsupported head: {type}")
             return outputs
 
+
+def load_balance_loss(routing_probs):
+    expert_mean = routing_probs.mean(dim=0)
+    loss = (expert_mean * routing_probs.sum(dim=0)).sum()
+    return loss

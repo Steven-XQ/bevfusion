@@ -124,6 +124,12 @@ class HungarianAssigner3D(BaseAssigner):
         if linear_sum_assignment is None:
             raise ImportError('Please run "pip install scipy" '
                               'to install scipy first.')
+        # if not torch.isfinite(cost).all():
+        #     num_bboxes = bboxes.size(0)
+        #     assigned_gt_inds = torch.zeros(num_bboxes, dtype=torch.long, device=bboxes.device)
+        #     max_overlaps = torch.zeros(num_bboxes, dtype=torch.float, device=bboxes.device)
+        #     assigned_labels = torch.full((num_bboxes,), -1, dtype=torch.long, device=bboxes.device)
+        #     return AssignResult(0, assigned_gt_inds, max_overlaps, labels=assigned_labels)  # dummy assign result
         matched_row_inds, matched_col_inds = linear_sum_assignment(cost)
         matched_row_inds = torch.from_numpy(matched_row_inds).to(bboxes.device)
         matched_col_inds = torch.from_numpy(matched_col_inds).to(bboxes.device)

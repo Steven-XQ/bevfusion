@@ -1,18 +1,224 @@
 voxel_size: [0.075, 0.075, 0.2]
 point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
 
+find_unused_parameters: True
+
 model:
   encoders:
     camera:
       backbone:
-        type: ResNet
-        depth: 50
-        out_indices: [1, 2, 3]
+        # type: SwinTransformer
+        # embed_dims: 96
+        # depths: [2, 2, 6, 2]
+        # num_heads: [3, 6, 12, 24]
+        # window_size: 7
+        # mlp_ratio: 4
+        # qkv_bias: true
+        # qk_scale: null
+        # drop_rate: 0.
+        # attn_drop_rate: 0.
+        # drop_path_rate: 0.2
+        # patch_norm: true
+        # out_indices: [1, 2, 3]
+        # with_cp: false
+        # convert_weights: true
         # init_cfg:
         #   type: Pretrained
-        #   checkpoint: https://download.pytorch.org/models/resnet50-0676ba61.pth
+        #   checkpoint: pretrained/swint-nuimages-pretrained.pth
+#---------------------------------------------------------
+        # type: ResNet
+        # depth: 50
+        # num_stages: 4
+        # out_indices: [1, 2, 3]
+        # norm_cfg:
+        #   type: BN2d
+        #   requires_grad: true
+        # norm_eval: false
+        # init_cfg:
+        #   type: Pretrained
+        #   checkpoint: torchvision://resnet50
+#---------------------------------------------------------
+        # type: ResNet
+        # depth: 101
+        # num_stages: 4
+        # out_indices: [1, 2, 3]
+        # norm_cfg:
+        #   type: BN2d
+        #   requires_grad: true
+        # norm_eval: false
+        # init_cfg:
+        #   type: Pretrained
+        #   checkpoint: torchvision://resnet101
+#---------------------------------------------------------
+        # type: PyramidVisionTransformer
+        # pretrain_img_size: [256, 704]                
+        # embed_dims: 64      
+        # num_stages: 4                       
+        # drop_path_rate: 0.1         
+        # out_indices: [1,2,3]
+        # sr_ratios: [4, 2, 1, 1]
+        # convert_weights: True 
+        # norm_cfg:
+        #   type: LN   
+        # init_cfg:
+        #   type: Pretrained
+        #   checkpoint: pretrained/pvt_v2_b5.pth
+#---------------------------------------------------------
+        type: MoENetwork
+        num_experts: 4
+        in_channels: 3
+        experts_cfg: 
+          - type: SwinTransformer
+            embed_dims: 96
+            depths: [2, 2, 6, 2]
+            num_heads: [3, 6, 12, 24]
+            window_size: 7
+            mlp_ratio: 4
+            qkv_bias: true
+            qk_scale: null
+            drop_rate: 0.
+            attn_drop_rate: 0.
+            drop_path_rate: 0.2
+            patch_norm: true
+            out_indices: [1, 2, 3]
+            with_cp: false
+            convert_weights: true
+            init_cfg:
+              type: Pretrained
+              checkpoint: pretrained/swint-nuimages-pretrained.pth
+          - type: ResNet
+            depth: 50
+            num_stages: 4
+            out_indices: [1, 2, 3]
+            norm_cfg:
+              type: BN2d
+              requires_grad: true
+            norm_eval: false
+            init_cfg:
+              type: Pretrained
+              checkpoint: torchvision://resnet50
+          - type: ResNet
+            depth: 101
+            num_stages: 4
+            out_indices: [1, 2, 3]
+            norm_cfg:
+              type: BN2d
+              requires_grad: true
+            norm_eval: false
+            init_cfg:
+              type: Pretrained
+              checkpoint: torchvision://resnet101
+          - type: PyramidVisionTransformer
+            pretrain_img_size: [256, 704]                
+            embed_dims: 64      
+            num_stages: 4                       
+            drop_path_rate: 0.1         
+            out_indices: [1, 2, 3]
+            sr_ratios: [4, 2, 1, 1]
+            convert_weights: True 
+            norm_cfg:
+              type: LN   
+            init_cfg:
+              type: Pretrained
+              checkpoint: pretrained/pvt_v2_b5.pth
+        router:
+          type: AttentionRouter
+          embed_dim: 128
+          num_heads: 4
+          k: 1
+#---------------------------------------------------------
+        # type: MoENetwork
+        # num_experts: 4
+        # in_channels: 3
+        # experts_cfg: 
+        #   - type: SwinTransformer
+        #     embed_dims: 96
+        #     depths: [2, 2, 6, 2]
+        #     num_heads: [3, 6, 12, 24]
+        #     window_size: 7
+        #     mlp_ratio: 4
+        #     qkv_bias: true
+        #     qk_scale: null
+        #     drop_rate: 0.
+        #     attn_drop_rate: 0.
+        #     drop_path_rate: 0.2
+        #     patch_norm: true
+        #     out_indices: [1, 2, 3]
+        #     with_cp: false
+        #     convert_weights: true
+        #     init_cfg:
+        #       type: Pretrained
+        #       checkpoint: pretrained/swint-nuimages-pretrained.pth
+        #   - type: SwinTransformer
+        #     embed_dims: 96
+        #     depths: [2, 2, 6, 2]
+        #     num_heads: [3, 6, 12, 24]
+        #     window_size: 7
+        #     mlp_ratio: 4
+        #     qkv_bias: true
+        #     qk_scale: null
+        #     drop_rate: 0.
+        #     attn_drop_rate: 0.
+        #     drop_path_rate: 0.2
+        #     patch_norm: true
+        #     out_indices: [1, 2, 3]
+        #     with_cp: false
+        #     convert_weights: true
+        #     init_cfg:
+        #       type: Pretrained
+        #       checkpoint: pretrained/swint-nuimages-pretrained.pth
+        #   - type: SwinTransformer
+        #     embed_dims: 96
+        #     depths: [2, 2, 6, 2]
+        #     num_heads: [3, 6, 12, 24]
+        #     window_size: 7
+        #     mlp_ratio: 4
+        #     qkv_bias: true
+        #     qk_scale: null
+        #     drop_rate: 0.
+        #     attn_drop_rate: 0.
+        #     drop_path_rate: 0.2
+        #     patch_norm: true
+        #     out_indices: [1, 2, 3]
+        #     with_cp: false
+        #     convert_weights: true
+        #     init_cfg:
+        #       type: Pretrained
+        #       checkpoint: pretrained/swint-nuimages-pretrained.pth
+        #   - type: SwinTransformer
+        #     embed_dims: 96
+        #     depths: [2, 2, 6, 2]
+        #     num_heads: [3, 6, 12, 24]
+        #     window_size: 7
+        #     mlp_ratio: 4
+        #     qkv_bias: true
+        #     qk_scale: null
+        #     drop_rate: 0.
+        #     attn_drop_rate: 0.
+        #     drop_path_rate: 0.2
+        #     patch_norm: true
+        #     out_indices: [1, 2, 3]
+        #     with_cp: false
+        #     convert_weights: true
+        #     init_cfg:
+        #       type: Pretrained
+        #       checkpoint: pretrained/swint-nuimages-pretrained.pth
+        # router:  
+        #   k: 2
       neck:
-        in_channels: [512, 1024, 2048]
+        # in_channels: [192, 384, 768] # swint
+        in_channels: [512, 1024, 2048] # resnet50, resnet101, MoE
+        # in_channels: [128, 320, 512] # pvt
+#---------------------------------------------------------
+      # backbone:
+      #   type: ResNet
+      #   depth: 50
+      #   out_indices: [1, 2, 3]
+      #   # init_cfg:
+      #   #   type: Pretrained
+      #   #   checkpoint: https://download.pytorch.org/models/resnet50-0676ba61.pth
+      # neck:
+      #   in_channels: [512, 1024, 2048]
       vtransform:
         xbound: [-54.0, 54.0, 0.3]
         ybound: [-54.0, 54.0, 0.3]

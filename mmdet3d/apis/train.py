@@ -41,6 +41,15 @@ def train_model(
         for ds in dataset
     ]
 
+    # for param in model.parameters():
+    #     param.requires_grad = False
+
+    # for param in model.encoders["camera"]["backbone"].parameters():
+    #     param.requires_grad = True
+
+    # for param in model.encoders["camera"]["neck"].parameters():
+    #     param.requires_grad = True
+
     # put model on gpus
     find_unused_parameters = cfg.get("find_unused_parameters", False)
     # Sets the `find_unused_parameters` parameter in
@@ -51,6 +60,8 @@ def train_model(
         broadcast_buffers=False,
         find_unused_parameters=find_unused_parameters,
     )
+
+    # cfg.optimizer['params'] = [p for p in model.parameters() if p.requires_grad]
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)

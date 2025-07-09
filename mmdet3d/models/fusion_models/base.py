@@ -75,12 +75,21 @@ class Base3DFusionModel(BaseModule, metaclass=ABCMeta):
                 DDP, it means the batch size on each GPU), which is used for \
                 averaging the logs.
         """
-        losses = self(**data)
-        loss, log_vars = self._parse_losses(losses)
+        try:
+            losses = self(**data)
+            loss, log_vars = self._parse_losses(losses)
 
-        outputs = dict(loss=loss, log_vars=log_vars, num_samples=len(data["metas"]))
+            outputs = dict(loss=loss, log_vars=log_vars, num_samples=len(data["metas"]))
 
-        return outputs
+            return outputs
+        except ValueError as e:
+            if 'cost matrix is infeasible' in str(e):
+                print(f"[WARNING] Skipping batch due to infeasible cost matrix: {e}")
+                dummy_loss = sum(p.sum() * 0.0 for p in self.parameters() if p.requires_grad)
+                outputs = dict(loss=dummy_loss, log_vars={"skip_batch": 1.0}, num_samples=len(data["metas"]))
+                return outputs
+            else:
+                raise
 
     def val_step(self, data, optimizer):
         """The iteration step during validation.
